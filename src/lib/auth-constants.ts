@@ -1,0 +1,3 @@
+/** SHA-256 of "demo123" — default for seeded mock accounts */
+export const DEMO_PASSWORD_HASH =
+  "d3ad9315b7be5dd53b31a273b3b3aba5defe700808305aa16a3062b76658a791";
