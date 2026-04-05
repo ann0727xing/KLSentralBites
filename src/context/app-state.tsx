@@ -1028,7 +1028,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
         void remoteToggleLike(supabase, uid, postId, liked).then(
           ({ error }) => {
-            if (!error) dispatch({ type: "TOGGLE_LIKE", postId });
+            if (error) {
+              console.error("[toggleLike]", postId, error);
+              return;
+            }
+            dispatch({ type: "TOGGLE_LIKE", postId });
           },
         );
         return;

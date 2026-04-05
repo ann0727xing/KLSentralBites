@@ -17,9 +17,11 @@ type Props = {
   savedView?: boolean;
   /** Explore modal: no navigation on media/caption (grid opens modal instead). */
   modalEmbed?: boolean;
+  /** CSS columns masonry: full-width card, image stays within column */
+  masonry?: boolean;
 };
 
-export function PostCard({ post, savedView, modalEmbed }: Props) {
+export function PostCard({ post, savedView, modalEmbed, masonry }: Props) {
   const {
     getRestaurant,
     getUser,
@@ -114,13 +116,15 @@ export function PostCard({ post, savedView, modalEmbed }: Props) {
     toggleSave(post.id);
   }
 
+  const imageObjectClass = masonry ? "object-cover" : "object-contain";
+
   const mediaBlock = (
     <div className="relative w-full overflow-hidden bg-zinc-100">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={cover}
         alt=""
-        className={`block h-auto w-full object-contain transition duration-500 ${modalEmbed ? "" : "group-hover:opacity-[0.98]"}`}
+        className={`block h-auto w-full max-w-full ${imageObjectClass} transition duration-500 ${modalEmbed ? "" : "group-hover:opacity-[0.98]"}`}
         loading="lazy"
         decoding="async"
       />
@@ -133,8 +137,10 @@ export function PostCard({ post, savedView, modalEmbed }: Props) {
   );
 
   return (
-    <div className="relative">
-      <article className="overflow-hidden rounded-2xl bg-zinc-50">
+    <div className={`relative ${masonry ? "w-full min-w-0" : ""}`}>
+      <article
+        className={`overflow-hidden rounded-2xl bg-zinc-50 ${masonry ? "w-full min-w-0" : ""}`}
+      >
         {modalEmbed ? (
           <div className="block">{mediaBlock}</div>
         ) : (
@@ -225,7 +231,10 @@ export function PostCard({ post, savedView, modalEmbed }: Props) {
               <ul className="mb-2 space-y-1.5">
                 {displayComments.map((c) => {
                   const showHandle =
-                    c.authorHandle ?? getUser(c.authorId)?.handle ?? "User";
+                    c.users?.handle ??
+                    c.authorHandle ??
+                    getUser(c.authorId)?.handle ??
+                    "User";
                   return (
                     <li
                       key={c.id}

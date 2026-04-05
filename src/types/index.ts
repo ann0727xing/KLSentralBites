@@ -51,6 +51,11 @@ export interface Comment {
   createdAt: string;
   /** From `users.handle` when loaded from Supabase. */
   authorHandle?: string;
+  /** Nested `users` row from PostgREST when `comments.user_id → users.id` exists. */
+  users?: {
+    id?: string;
+    handle?: string;
+  };
 }
 
 export interface Like {

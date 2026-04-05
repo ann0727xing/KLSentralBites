@@ -304,7 +304,7 @@ export function PostDetail({ postId }: Props) {
             {sortedComments.map((c) => {
               const u = getUser(c.authorId);
               const handleLabel =
-                c.authorHandle ?? u?.handle ?? "User";
+                c.users?.handle ?? c.authorHandle ?? u?.handle ?? "User";
               return (
                 <li key={c.id} className="flex gap-3">
                   {u ? (

@@ -43,11 +43,13 @@ function mapCommentRow(
   row: Record<string, unknown>,
   postId: PostId,
 ): Comment {
-  const usersJoin = pickJoinedRow<{ handle?: string }>(row.users);
+  const usersJoin = pickJoinedRow<{ id?: string; handle?: string }>(row.users);
   const handle =
     typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
       ? usersJoin.handle
       : undefined;
+  const uid =
+    usersJoin?.id != null ? String(usersJoin.id) : undefined;
   return {
     id: String(row.id ?? ""),
     postId,
@@ -58,6 +60,10 @@ function mapCommentRow(
         ? row.created_at
         : new Date().toISOString(),
     authorHandle: handle,
+    users:
+      usersJoin != null && (uid != null || handle != null)
+        ? { id: uid, handle }
+        : undefined,
   };
 }
 
@@ -77,11 +83,9 @@ export async function fetchCommentsForPost(
     .from("comments")
     .select(
       `
-      id,
-      content,
-      user_id,
-      created_at,
+      *,
       users (
+        id,
         handle
       )
     `,
@@ -482,6 +486,7 @@ export type NotificationRow = {
   actorId: string;
   actorHandle: string;
   postId?: string;
+  isRead: boolean;
   /** From `posts.image_url` when joined (like notifications). */
   postImageUrl?: string;
 };
@@ -493,6 +498,7 @@ export const NOTIFICATION_DETAIL_SELECT = `
   created_at,
   actor_id,
   post_id,
+  is_read,
   actor:users!notifications_actor_id_fkey ( handle ),
   post:posts!notifications_post_id_fkey ( id, image_url )
 ` as const;
@@ -533,6 +539,7 @@ export function mapNotificationRowFromRaw(
     actorId: String(raw.actor_id ?? ""),
     actorHandle: handle,
     postId,
+    isRead: Boolean(raw.is_read),
     postImageUrl,
   };
 }
@@ -557,4 +564,21 @@ export async function fetchNotificationsForUser(
     items.push(mapNotificationRowFromRaw(raw as Record<string, unknown>));
   }
   return { items };
+}
+
+export async function fetchUnreadNotificationCount(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{ count: number; error?: string }> {
+  const uid = String(userId ?? "").trim();
+  if (!uid) return { count: 0 };
+
+  const { count, error } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", uid)
+    .eq("is_read", false);
+
+  if (error) return { count: 0, error: error.message };
+  return { count: count ?? 0 };
 }

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserAvatar } from "@/components/profile/user-avatar";
+import { formatRelativeTime } from "@/lib/format-relative-time";
 import { needsUnoptimizedImage } from "@/lib/image-data";
 import { postCoverImage } from "@/lib/post-images";
 import { useAppState } from "@/context/app-state";
@@ -15,6 +16,7 @@ import {
   NOTIFICATION_DETAIL_SELECT,
   type NotificationRow,
 } from "@/lib/supabase/fetch";
+import { remoteMarkAllNotificationsRead } from "@/lib/supabase/mutations";
 import type { AppNotification, Post, User } from "@/types";
 
 export default function NotificationsPage() {
@@ -60,8 +62,18 @@ export default function NotificationsPage() {
         return [row, ...prev];
       });
 
-      if (row.type === "like" || row.type === "follow") {
-        setToast(row.type === "like" ? "New like ❤️" : "New follower");
+      if (
+        row.type === "like" ||
+        row.type === "follow" ||
+        row.type === "comment"
+      ) {
+        setToast(
+          row.type === "like"
+            ? "New like ❤️"
+            : row.type === "follow"
+              ? "New follower"
+              : "New comment 💬",
+        );
         window.setTimeout(() => setToast(null), 3500);
         setHighlightIds((prev) => new Set(prev).add(row.id));
         window.setTimeout(() => {
@@ -115,18 +127,23 @@ export default function NotificationsPage() {
     }
     let cancelled = false;
     setLoading(true);
-    void fetchNotificationsForUser(supabase, currentUserId).then(
-      ({ items, error }) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (error) {
-          console.error("[notifications]", error);
-          setRemoteItems([]);
-          return;
-        }
-        setRemoteItems(items);
-      },
-    );
+    void (async () => {
+      await remoteMarkAllNotificationsRead(supabase, currentUserId);
+      if (cancelled) return;
+      window.dispatchEvent(new Event("notifications-marked-read"));
+      const { items, error } = await fetchNotificationsForUser(
+        supabase,
+        currentUserId,
+      );
+      if (cancelled) return;
+      setLoading(false);
+      if (error) {
+        console.error("[notifications]", error);
+        setRemoteItems([]);
+        return;
+      }
+      setRemoteItems(items);
+    })();
     return () => {
       cancelled = true;
     };
@@ -134,20 +151,10 @@ export default function NotificationsPage() {
 
   const useRemote = isSupabaseConfigured() && Boolean(currentUserId);
 
-  const socialRemote = useMemo(
-    () => remoteItems.filter((n) => n.type === "like" || n.type === "follow"),
-    [remoteItems],
-  );
-
-  const socialMock = useMemo(
-    () => mockItems.filter((n) => n.type === "like" || n.type === "follow"),
-    [mockItems],
-  );
-
   const empty = useMemo(() => {
-    if (useRemote) return socialRemote.length === 0 && !loading;
-    return socialMock.length === 0;
-  }, [useRemote, socialRemote.length, loading, socialMock.length]);
+    if (useRemote) return remoteItems.length === 0 && !loading;
+    return mockItems.length === 0;
+  }, [useRemote, remoteItems.length, loading, mockItems.length]);
 
   if (useRemote && loading) {
     return (
@@ -156,7 +163,7 @@ export default function NotificationsPage() {
           <h1 className="text-base font-medium leading-tight tracking-tight text-zinc-900">
             Notifications
           </h1>
-          <p className="text-xs text-zinc-400">Likes and follows</p>
+          <p className="text-xs text-zinc-400">Activity on your posts and profile</p>
         </header>
         <p className="py-16 text-center text-sm text-zinc-400">Loading…</p>
       </div>
@@ -169,7 +176,7 @@ export default function NotificationsPage() {
         <h1 className="text-base font-medium leading-tight tracking-tight text-zinc-900">
           Notifications
         </h1>
-        <p className="text-xs text-zinc-400">Likes and follows</p>
+        <p className="text-xs text-zinc-400">Activity on your posts and profile</p>
       </header>
 
       {toast && (
@@ -188,7 +195,7 @@ export default function NotificationsPage() {
         </p>
       ) : useRemote ? (
         <ul className="space-y-2">
-          {socialRemote.map((n) => (
+          {remoteItems.map((n) => (
             <RemoteNotificationListItem
               key={n.id}
               n={n}
@@ -199,8 +206,13 @@ export default function NotificationsPage() {
         </ul>
       ) : (
         <ul className="space-y-2">
-          {socialMock.map((n) => (
-            <MockNotificationListItem key={n.id} n={n} getUser={getUser} getPost={getPost} />
+          {mockItems.map((n) => (
+            <MockNotificationListItem
+              key={n.id}
+              n={n}
+              getUser={getUser}
+              getPost={getPost}
+            />
           ))}
         </ul>
       )}
@@ -228,7 +240,7 @@ function RemoteNotificationListItem({
 }) {
   const actor = syntheticUser(n.actorId, n.actorHandle);
   const href =
-    n.type === "like" && n.postId
+    n.postId && (n.type === "like" || n.type === "comment")
       ? `/post/${n.postId}`
       : `/profile/${n.actorId}`;
 
@@ -238,6 +250,9 @@ function RemoteNotificationListItem({
       : n.type === "follow"
         ? "followed you"
         : "commented on your post";
+
+  const showThumb =
+    (n.type === "like" || n.type === "comment") && Boolean(n.postId);
 
   return (
     <li>
@@ -255,10 +270,13 @@ function RemoteNotificationListItem({
             <span className="font-medium">@{n.actorHandle}</span>
             <span className="text-zinc-500"> {label}</span>
           </p>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            {formatRelativeTime(n.createdAt)}
+          </p>
         </div>
-        {n.type === "like" && n.postId ? (
+        {showThumb ? (
           <PostThumb
-            postId={n.postId}
+            postId={n.postId!}
             imageUrl={n.postImageUrl}
             getPost={getPost}
           />
@@ -350,6 +368,9 @@ function MockNotificationListItem({
               “{n.preview}”
             </p>
           )}
+          <p className="mt-0.5 text-xs text-zinc-400">
+            {formatRelativeTime(n.createdAt)}
+          </p>
         </div>
         {n.type !== "follow" && post ? (
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-zinc-100">

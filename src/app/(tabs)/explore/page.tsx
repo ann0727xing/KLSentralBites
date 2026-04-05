@@ -274,29 +274,32 @@ function ExploreContent() {
 
       <ExploreTrending trending={trending} />
 
-      <div className="max-w-xl mx-auto space-y-6 p-4">
+      <div className="mx-auto max-w-7xl px-3 pb-8 pt-1 sm:px-4">
         {filteredItems.length === 0 ? (
           <p className="py-24 text-center text-sm text-zinc-400">
             {emptyMessage ?? "No posts yet."}
           </p>
         ) : (
-          filteredItems.map(({ post }) => (
-            <div
-              key={post.id}
-              className="cursor-pointer rounded-2xl outline-none transition ring-zinc-900/5 focus-visible:ring-2"
-              role="button"
-              tabIndex={0}
-              onClick={() => setSelectedPost(post)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  setSelectedPost(post);
-                }
-              }}
-            >
-              <PostCard post={post} modalEmbed />
-            </div>
-          ))
+          <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
+            {filteredItems.map(({ post }) => (
+              <div key={post.id} className="mb-4 break-inside-avoid">
+                <div
+                  className="w-full cursor-pointer rounded-2xl outline-none transition ring-zinc-900/5 focus-visible:ring-2"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedPost(post)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedPost(post);
+                    }
+                  }}
+                >
+                  <PostCard post={post} modalEmbed masonry />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 

@@ -105,13 +105,25 @@ export async function remoteToggleLike(
       .delete()
       .eq("post_id", postId)
       .eq("user_id", userId);
-    return { error: error?.message };
+    if (error) {
+      console.error("[remoteToggleLike] delete:", error.message, error);
+      return { error: error.message };
+    }
+    return {};
   }
   const { error } = await supabase.from("likes").insert({
     post_id: postId,
     user_id: userId,
   });
-  if (error) return { error: error.message };
+  if (error) {
+    // Unique (user_id, post_id) — treat duplicate as success (idempotent like)
+    if (error.code === "23505") {
+      console.warn("[remoteToggleLike] duplicate like skipped:", postId);
+      return {};
+    }
+    console.error("[remoteToggleLike] insert:", error.message, error);
+    return { error: error.message };
+  }
 
   const { data: postRow } = await supabase
     .from("posts")
@@ -139,6 +151,21 @@ export async function remoteToggleLike(
   }
 
   return {};
+}
+
+/** Mark every notification as read for the current user (in-app inbox). */
+export async function remoteMarkAllNotificationsRead(
+  supabase: SupabaseClient,
+  userId: UserId,
+): Promise<{ error?: string }> {
+  const uid = String(userId ?? "").trim();
+  if (!uid) return {};
+  const { error } = await supabase
+    .from("notifications")
+    .update({ is_read: true })
+    .eq("user_id", uid)
+    .eq("is_read", false);
+  return { error: error?.message };
 }
 
 export async function remoteToggleSave(
@@ -184,9 +211,35 @@ export async function remoteAddComment(
     })
     .select("id, created_at")
     .single();
+  if (error) {
+    return { error: error.message };
+  }
+
+  const { data: postRow } = await supabase
+    .from("posts")
+    .select("user_id, author_id")
+    .eq("id", args.postId)
+    .maybeSingle();
+  const ownerRaw = postRow
+    ? (postRow as { user_id?: string; author_id?: string }).user_id ??
+      (postRow as { user_id?: string; author_id?: string }).author_id
+    : undefined;
+  const ownerId =
+    typeof ownerRaw === "string" && ownerRaw.length > 0 ? ownerRaw : null;
+  if (ownerId && ownerId !== args.authorId) {
+    const { error: nErr } = await supabase.from("notifications").insert({
+      user_id: ownerId,
+      actor_id: args.authorId,
+      type: "comment",
+      post_id: args.postId,
+    });
+    if (nErr) {
+      console.warn("[remoteAddComment] notification insert:", nErr.message);
+    }
+  }
+
   return {
     data: data ?? undefined,
-    error: error?.message,
   };
 }
 

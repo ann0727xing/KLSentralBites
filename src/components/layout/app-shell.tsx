@@ -1,6 +1,7 @@
 "use client";
 
 import { AppLogo } from "@/components/brand/app-logo";
+import { NotificationUnreadBadge } from "@/components/layout/notification-unread-badge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, ReactNode } from "react";
@@ -82,6 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   {t.label}
+                  {t.href === "/notifications" ? <NotificationUnreadBadge /> : null}
                 </Link>
               );
             })}
@@ -133,11 +135,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <span
-                    className={`flex flex-col items-center gap-0.5 rounded-2xl px-1.5 pt-0.5 transition-colors ${
+                    className={`relative flex flex-col items-center gap-0.5 rounded-2xl px-1.5 pt-0.5 transition-colors ${
                       active ? "bg-zinc-100/90" : ""
                     }`}
                   >
-                  <Icon className="h-[22px] w-[22px] shrink-0" />
+                  <span className="relative inline-flex">
+                    <Icon className="h-[22px] w-[22px] shrink-0" />
+                    {t.href === "/notifications" ? (
+                      <NotificationUnreadBadge />
+                    ) : null}
+                  </span>
                   <span className="max-w-[4.25rem] text-center text-[10px] font-normal leading-tight sm:max-w-[4.5rem] sm:text-[11px]">
                     {t.label}
                   </span>
