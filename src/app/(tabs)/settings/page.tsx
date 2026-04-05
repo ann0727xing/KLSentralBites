@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PasswordField } from "@/components/auth/password-field";
 import { useAppState } from "@/context/app-state";
+import { supabaseAuthToAppUser } from "@/lib/supabase-auth-user";
 import { handleValidationMessage } from "@/lib/validate-handle";
+import type { User } from "@/types";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -19,8 +21,28 @@ export default function SettingsPage() {
     deleteAccount,
     changePassword,
     currentUserId,
+    currentUser,
+    supabaseMode,
   } = useAppState();
-  const user = currentUserId ? getUser(currentUserId) : undefined;
+
+  const user = useMemo((): User | undefined => {
+    if (!currentUserId) return undefined;
+    const fromState = getUser(currentUserId);
+    if (fromState) return fromState;
+    if (supabaseMode && currentUser) {
+      return supabaseAuthToAppUser(currentUser);
+    }
+    return undefined;
+  }, [currentUserId, getUser, supabaseMode, currentUser]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      // eslint-disable-next-line no-console -- debug aid for profile / auth timing
+      console.log("[settings] currentUserId:", currentUserId);
+      // eslint-disable-next-line no-console
+      console.log("[settings] user:", user);
+    }
+  }, [currentUserId, user]);
 
   const [handleDraft, setHandleDraft] = useState("");
   const [handleError, setHandleError] = useState<string | null>(null);
@@ -32,12 +54,26 @@ export default function SettingsPage() {
   const [pwError, setPwError] = useState<string | null>(null);
   const [pwOk, setPwOk] = useState(false);
 
-  if (!user || !currentUserId) return null;
+  if (!currentUserId) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pb-12 pt-8 text-center">
+        <p className="text-sm text-zinc-500">Loading user…</p>
+      </div>
+    );
+  }
 
-  const enabled = state.settings.notificationsEnabled;
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-lg px-4 pb-12 pt-8 text-center">
+        <p className="text-sm text-zinc-500">Loading profile…</p>
+      </div>
+    );
+  }
+
+  const enabled = Boolean(state.settings?.notificationsEnabled);
 
   async function saveHandle() {
-    if (!user) return;
+    if (!user || !currentUserId) return;
     setHandleError(null);
     setHandleSaved(false);
     const raw = handleDraft || user.handle;
@@ -122,14 +158,14 @@ export default function SettingsPage() {
             </label>
             <input
               id="h"
-              value={handleDraft || user.handle}
+              value={handleDraft || user?.handle || ""}
               onChange={(e) => {
                 setHandleDraft(e.target.value.replace(/\s/g, ""));
                 setHandleError(null);
                 setHandleSaved(false);
               }}
               onFocus={() => {
-                if (!handleDraft) setHandleDraft(user.handle);
+                if (!handleDraft && user?.handle) setHandleDraft(user.handle);
               }}
               className="mt-1 w-full rounded-xl border-0 bg-zinc-50 px-3 py-2.5 text-sm text-zinc-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
               autoCapitalize="none"
@@ -233,9 +269,11 @@ export default function SettingsPage() {
         </h2>
         <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-zinc-500">Name</p>
-          <p className="mt-1 text-sm text-zinc-900">{user.displayName}</p>
+          <p className="mt-1 text-sm text-zinc-900">{user?.displayName ?? "—"}</p>
           <p className="mt-4 text-xs font-medium text-zinc-500">Handle</p>
-          <p className="mt-1 text-sm text-zinc-900">@{user.handle}</p>
+          <p className="mt-1 text-sm text-zinc-900">
+            @{user?.handle ?? "—"}
+          </p>
         </div>
       </section>
 
