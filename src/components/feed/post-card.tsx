@@ -85,16 +85,20 @@ export function PostCard({ post, savedView, masonry }: Props) {
         </Link>
 
         <div className="px-2 pb-2 pt-2">
-          <Link href={postHref} className="block">
-            <span className="text-sm text-gray-500">
-              @{post.users?.handle ?? "User"}
-            </span>
-            {post.caption ? (
-              <p className="mt-1 line-clamp-2 text-[13px] font-normal leading-[1.4] text-zinc-600">
+          <Link
+            href={`/user/${post.authorId}`}
+            className="text-sm text-gray-500 hover:text-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            @{post.users?.handle ?? "User"}
+          </Link>
+          {post.caption ? (
+            <Link href={postHref} className="mt-1 block">
+              <p className="line-clamp-2 text-[13px] font-normal leading-[1.4] text-zinc-600">
                 {post.caption}
               </p>
-            ) : null}
-          </Link>
+            </Link>
+          ) : null}
 
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <button

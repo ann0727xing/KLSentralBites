@@ -49,7 +49,7 @@ export default function ProfileByIdPage() {
     setLoading(true);
     const { data: userRow, error: userErr } = await supabase
       .from("users")
-      .select("*")
+      .select("id, email, handle, created_at")
       .eq("id", id)
       .single();
 
@@ -103,10 +103,11 @@ export default function ProfileByIdPage() {
     notFound();
   }
 
+  const displayHandle = profile.handle?.trim() || "User";
   const user: User = {
     id: profile.id,
-    handle: profile.handle,
-    displayName: profile.handle,
+    handle: displayHandle,
+    displayName: displayHandle,
     avatarUrl: null,
     bio: "",
   };
@@ -121,7 +122,7 @@ export default function ProfileByIdPage() {
           <UserAvatar user={user} size={80} />
         </div>
         <h1 className="mt-4 text-base font-medium leading-tight tracking-tight text-zinc-900">
-          @{profile.handle}
+          @{displayHandle}
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
           {posts.length} {posts.length === 1 ? "post" : "posts"}
@@ -141,13 +142,13 @@ export default function ProfileByIdPage() {
         )}
         <p className="mt-4">
           <Link
-            href={`/u/${profile.handle}`}
+            href={`/u/${encodeURIComponent(displayHandle)}`}
             className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline"
           >
             View by @handle URL
           </Link>
         </p>
-        <ProfileSubtleLinks basePath={`/u/${profile.handle}`} />
+        <ProfileSubtleLinks basePath={`/u/${encodeURIComponent(displayHandle)}`} />
       </div>
 
       <ProfilePostGrid posts={posts} />

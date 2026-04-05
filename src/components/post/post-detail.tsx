@@ -216,10 +216,10 @@ export function PostDetail({ postId }: Props) {
       <div className="mt-6 space-y-5 px-0.5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            {linkHandle && (
+            {post.authorId && (
               <p className="text-sm font-medium text-zinc-900">
                 <Link
-                  href={`/u/${linkHandle}`}
+                  href={`/user/${post.authorId}`}
                   className="hover:text-zinc-600"
                 >
                   <span className="text-sm text-gray-500">

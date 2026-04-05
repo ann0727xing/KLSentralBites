@@ -182,7 +182,7 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
     bookmarks = bmList.length > 0 ? bmList : undefined;
   }
 
-  return {
+  const post: Post = {
     id,
     authorId,
     authorHandle,
@@ -195,6 +195,8 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
     createdAt,
     bookmarks,
   };
+  console.log(post.users);
+  return post;
 }
 
 /**
@@ -247,7 +249,10 @@ export function extractBookmarksFromPostsRows(
   return saves;
 }
 
-/** Requires FKs: posts_user_id_fkey → users.id, posts.restaurant_id → restaurants.id */
+/**
+ * Requires FKs: posts_user_id_fkey → users.id, posts.restaurant_id → restaurants.id
+ * Core author embed (never use `*` on posts): id, image_url, caption, user_id + users FK.
+ */
 export const POSTS_SELECT = `
   id,
   image_url,
@@ -278,7 +283,7 @@ ${POSTS_SELECT}
   )
 ` as const;
 
-/** Posts for another user’s profile (`/profile/[id]`). */
+/** Posts for another user’s profile (`/profile/[id]`). Same embeds as feed posts. */
 export const PROFILE_POSTS_SELECT = `
   id,
   image_url,
@@ -294,6 +299,9 @@ export const PROFILE_POSTS_SELECT = `
     name
   ),
   likes (
+    user_id
+  ),
+  bookmarks (
     user_id
   )
 ` as const;
