@@ -540,6 +540,8 @@ type AppContextValue = {
   deleteAccount: () => void | Promise<void>;
   /** Re-fetch posts/follows from Supabase and replace remote snapshot. */
   refreshRemoteData: () => Promise<{ ok: boolean; error?: string }>;
+  /** True while `signup()` is running — blocks GuestGuard redirect so insert can finish. */
+  signupInProgress: boolean;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -551,6 +553,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     SupabaseAuthUser | null | undefined
   >(undefined);
   const supabaseMode = isSupabaseConfigured();
+  const [signupInProgress, setSignupInProgress] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -710,65 +713,87 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.users, state.passwordHashes],
   );
 
-  const signup = useCallback(
-    async (handle: string, email: string, password: string) => {
-      try {
-        const safeEmail = String(email ?? "").trim();
-        const safePassword = String(password ?? "");
-        const username = normalizeHandle(handle);
+  const signup = useCallback(async (handle: string, email: string, password: string) => {
+    const safeEmail = String(email ?? "").trim();
+    const safePassword = String(password ?? "");
+    const username = normalizeHandle(handle);
 
-        const supabase = getSupabaseBrowserClient();
-        if (!supabase) {
-          return { ok: false, error: "Supabase client is undefined" };
-        }
-        if (!username) {
-          return { ok: false, error: "Handle is required" };
-        }
-        if (!/^[a-z0-9]{3,15}$/.test(username)) {
-          return { ok: false, error: "Invalid handle format." };
-        }
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      return { ok: false, error: "Supabase client is undefined" };
+    }
+    if (!username) {
+      return { ok: false, error: "Handle is required" };
+    }
+    if (!/^[a-z0-9]{3,15}$/.test(username)) {
+      return { ok: false, error: "Invalid handle format." };
+    }
 
-        const { data: authData, error: authError } =
-          await supabase.auth.signUp({
+    setSignupInProgress(true);
+    try {
+      console.log("HANDLE:", username);
+
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: safeEmail,
+        password: safePassword,
+      });
+
+      console.log("AUTH:", authData);
+
+      if (authError) {
+        throw new Error(authError.message);
+      }
+
+      const user = authData.user;
+      if (!user) {
+        throw new Error("No user returned");
+      }
+
+      // RLS policy users_insert_own: auth.uid() = id — session JWT required before insert.
+      if (!authData.session) {
+        const { data: signInData, error: signInError } =
+          await supabase.auth.signInWithPassword({
             email: safeEmail,
             password: safePassword,
           });
-
-        if (authError) {
-          throw new Error(authError.message);
+        console.log("AUTH:", signInData);
+        if (signInError) {
+          throw new Error(signInError.message);
         }
-
-        const user = authData.user;
-        if (!user) {
-          throw new Error("User not returned");
-        }
-
-        const emailForRow =
-          typeof user.email === "string" && user.email.length > 0
-            ? user.email.trim().toLowerCase()
-            : safeEmail.toLowerCase();
-
-        const { error: dbError } = await supabase.from("users").insert({
-          id: user.id,
-          email: emailForRow,
-          handle: username,
-        });
-
-        if (dbError) {
-          console.error("DB ERROR:", dbError);
-          throw new Error(dbError.message);
-        }
-
-        return { ok: true };
-      } catch (error) {
-        return {
-          ok: false,
-          error: error instanceof Error ? error.message : "Signup failed",
-        };
       }
-    },
-    [],
-  );
+
+      const emailForRow =
+        typeof user.email === "string" && user.email.length > 0
+          ? user.email.trim().toLowerCase()
+          : safeEmail.toLowerCase();
+
+      const { error: dbError } = await supabase.from("users").insert({
+        id: user.id,
+        email: emailForRow,
+        handle: username,
+      });
+
+      console.log("DB ERROR:", dbError);
+
+      if (dbError) {
+        await supabase.auth.signOut();
+        throw new Error(dbError.message);
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.href = "/explore";
+      }
+
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : "Signup failed",
+      };
+    } finally {
+      setSignupInProgress(false);
+    }
+  }, []);
 
   const changePassword = useCallback(
     async (currentPassword: string, newPassword: string) => {
@@ -1293,10 +1318,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       logout,
       deleteAccount,
       refreshRemoteData,
+      signupInProgress,
     }),
     [
       bootstrapReady,
       supabaseMode,
+      signupInProgress,
       currentUser,
       currentUserId,
       state,

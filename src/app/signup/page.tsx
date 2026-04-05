@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { GuestGuard } from "@/components/auth/guest-guard";
 import { PasswordField } from "@/components/auth/password-field";
@@ -10,7 +9,6 @@ import { useAppState } from "@/context/app-state";
 import { handleValidationMessage } from "@/lib/validate-handle";
 
 export default function SignupPage() {
-  const router = useRouter();
   const { signup } = useAppState();
   const [handle, setHandle] = useState("");
   const [email, setEmail] = useState("");
@@ -38,7 +36,7 @@ export default function SignupPage() {
       setError(res.error ?? "Could not create account.");
       return;
     }
-    router.replace("/following");
+    // Success: signup() redirects via window.location.href — no client redirect here.
   }
 
   return (
