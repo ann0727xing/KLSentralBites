@@ -109,7 +109,10 @@ export function PostDetail({ postId }: Props) {
   const sortedComments = useMemo(() => comments, [comments]);
 
   const linkHandle =
-    post?.users?.handle ?? post?.authorHandle ?? author?.handle;
+    post?.users?.display_name ??
+    post?.authorHandle ??
+    author?.displayName ??
+    author?.handle;
   const showRestaurantTag =
     post?.restaurants?.name != null && post.restaurants.name.length > 0;
   const fallbackRestaurantName =
@@ -315,7 +318,7 @@ export function PostDetail({ postId }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800">
                       <span className="font-semibold">
-                        @{c.users?.handle ?? "User"}
+                        @{c.users?.display_name ?? "User"}
                       </span>{" "}
                       <span className="font-normal">{c.body}</span>
                     </p>

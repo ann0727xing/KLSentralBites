@@ -24,7 +24,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   const { data: user, error: userError } = await supabase
     .from("users")
-    .select("id, email, handle, created_at")
+    .select("id, email, handle, display_name, created_at")
     .eq("id", uid)
     .single();
 
@@ -42,10 +42,12 @@ export default async function UserProfilePage({ params }: Props) {
     mapSupabasePostRow(r as Record<string, unknown>),
   );
 
-  const handle =
-    typeof user.handle === "string" && user.handle.length > 0
-      ? user.handle
-      : "User";
+  const displayName =
+    typeof user.display_name === "string" && user.display_name.trim().length > 0
+      ? user.display_name.trim()
+      : typeof user.handle === "string" && user.handle.length > 0
+        ? user.handle
+        : "User";
 
   return (
     <div className="mx-auto max-w-6xl pb-10 pt-2 md:pt-0">
@@ -58,7 +60,7 @@ export default async function UserProfilePage({ params }: Props) {
         </Link>
       </div>
       <div className="mb-8 text-center">
-        <p className="text-sm text-gray-500">@{handle}</p>
+        <p className="text-sm text-gray-500">@{displayName}</p>
       </div>
       <FeedGrid
         posts={mapped.filter((p) => p.isPublic)}

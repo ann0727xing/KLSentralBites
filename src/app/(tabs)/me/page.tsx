@@ -114,7 +114,7 @@ function MeContent() {
           {profileUser.displayName}
         </h1>
         <p className="text-sm text-zinc-400">
-          @{profileUser.handle ?? "User"}
+          @{profileUser.displayName ?? profileUser.handle ?? "User"}
         </p>
         <p className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-600">
           {profileUser.bio?.trim() ? (

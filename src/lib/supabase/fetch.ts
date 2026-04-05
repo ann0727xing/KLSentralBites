@@ -43,10 +43,14 @@ function mapCommentRow(
   row: Record<string, unknown>,
   postId: PostId,
 ): Comment {
-  const usersJoin = pickJoinedRow<{ id?: string; handle?: string }>(row.users);
-  const handle =
-    typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
-      ? usersJoin.handle
+  const usersJoin = pickJoinedRow<{
+    id?: string;
+    display_name?: string;
+  }>(row.users);
+  const displayName =
+    typeof usersJoin?.display_name === "string" &&
+    usersJoin.display_name.length > 0
+      ? usersJoin.display_name
       : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
@@ -59,16 +63,16 @@ function mapCommentRow(
       typeof row.created_at === "string"
         ? row.created_at
         : new Date().toISOString(),
-    authorHandle: handle,
+    authorHandle: displayName,
     users:
-      usersJoin != null && (uid != null || handle != null)
-        ? { id: uid, handle }
+      usersJoin != null && (uid != null || displayName != null)
+        ? { id: uid, display_name: displayName }
         : undefined,
   };
 }
 
 /**
- * Loads comments for a post with `users (handle)`.
+ * Loads comments for a post with `users (display_name)`.
  * Use `latestOnly: true` + `limit` for the N most recent (feed cards).
  */
 export async function fetchCommentsForPost(
@@ -103,7 +107,6 @@ export async function fetchCommentsForPost(
   }
 
   const { data: comments, error } = await q;
-  console.log(comments);
   if (error) return { comments: [], error: error.message };
 
   let rows = (comments ?? []) as Record<string, unknown>[];
@@ -122,16 +125,20 @@ export async function fetchCommentsForPost(
 export function mapSupabasePostRow(row: Record<string, unknown>): Post {
   const id = String(row.id ?? "");
   const authorId = String(row.user_id ?? row.author_id ?? "");
-  const usersJoin = pickJoinedRow<{ id?: string; handle?: string }>(row.users);
+  const usersJoin = pickJoinedRow<{
+    id?: string;
+    display_name?: string;
+  }>(row.users);
   const authorHandle =
-    typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
-      ? String(usersJoin.handle)
+    typeof usersJoin?.display_name === "string" &&
+    usersJoin.display_name.length > 0
+      ? String(usersJoin.display_name)
       : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
   const users =
     usersJoin != null && (uid != null || authorHandle != null)
-      ? { id: uid, handle: authorHandle }
+      ? { id: uid, display_name: authorHandle }
       : undefined;
   const restaurantsJoin = pickJoinedRow<Record<string, unknown>>(
     row.restaurants,
@@ -182,7 +189,7 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
     bookmarks = bmList.length > 0 ? bmList : undefined;
   }
 
-  const post: Post = {
+  return {
     id,
     authorId,
     authorHandle,
@@ -195,8 +202,6 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
     createdAt,
     bookmarks,
   };
-  console.log(post.users);
-  return post;
 }
 
 /**
@@ -262,7 +267,7 @@ export const POSTS_SELECT = `
   restaurant_id,
   users!posts_user_id_fkey (
     id,
-    handle
+    display_name
   ),
   restaurants (
     name
@@ -293,7 +298,7 @@ export const PROFILE_POSTS_SELECT = `
   restaurant_id,
   users!posts_user_id_fkey (
     id,
-    handle
+    display_name
   ),
   restaurants (
     name
@@ -517,7 +522,7 @@ export const NOTIFICATION_DETAIL_SELECT = `
   actor_id,
   post_id,
   is_read,
-  actor:users!notifications_actor_id_fkey ( handle ),
+  actor:users!notifications_actor_id_fkey ( display_name ),
   post:posts!notifications_post_id_fkey ( id, image_url )
 ` as const;
 
@@ -525,7 +530,7 @@ export const NOTIFICATION_DETAIL_SELECT = `
 export function mapNotificationRowFromRaw(
   raw: Record<string, unknown>,
 ): NotificationRow {
-  const actorJoin = pickJoinedRow<{ handle?: string }>(raw.actor);
+  const actorJoin = pickJoinedRow<{ display_name?: string }>(raw.actor);
   const postJoin = pickJoinedRow<{ id?: string; image_url?: string }>(
     raw.post,
   );
@@ -541,8 +546,9 @@ export function mapNotificationRowFromRaw(
       ? postJoin.image_url
       : undefined;
   const handle =
-    typeof actorJoin?.handle === "string" && actorJoin.handle.length > 0
-      ? actorJoin.handle
+    typeof actorJoin?.display_name === "string" &&
+    actorJoin.display_name.length > 0
+      ? actorJoin.display_name
       : "?";
   const t = raw.type;
   const type: NotificationRow["type"] =

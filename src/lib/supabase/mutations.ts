@@ -32,7 +32,12 @@ export async function remoteInsertRestaurant(
  */
 export async function remoteEnsureUserRow(
   supabase: SupabaseClient,
-  args: { id: string; email?: string | null; handle?: string },
+  args: {
+    id: string;
+    email?: string | null;
+    handle?: string;
+    displayName?: string;
+  },
 ): Promise<{ error?: string }> {
   const email = String(args.email ?? "").trim();
   if (!args.id || !email) return { error: "Missing user id or email" };
@@ -46,8 +51,13 @@ export async function remoteEnsureUserRow(
         })();
   if (!handle) return { error: "Handle required" };
 
+  const display_name =
+    args.displayName != null && String(args.displayName).trim() !== ""
+      ? String(args.displayName).trim()
+      : handle;
+
   const { error } = await supabase.from("users").upsert(
-    { id: args.id, email: lower, handle },
+    { id: args.id, email: lower, handle, display_name },
     { onConflict: "id" },
   );
   return { error: error?.message };
@@ -305,7 +315,7 @@ export async function remoteToggleFollow(
 
 export async function remoteUpdateProfile(
   supabase: SupabaseClient,
-  _userId: UserId,
+  userId: UserId,
   args: {
     displayName?: string;
     handle?: string;
@@ -325,6 +335,17 @@ export async function remoteUpdateProfile(
     data: dataPatch,
   });
   if (authErr) return { error: authErr.message };
+
+  const row: Record<string, unknown> = {};
+  if (args.handle !== undefined) row.handle = args.handle;
+  if (args.displayName !== undefined) row.display_name = args.displayName;
+  if (Object.keys(row).length > 0) {
+    const { error: dbErr } = await supabase
+      .from("users")
+      .update(row)
+      .eq("id", userId);
+    if (dbErr) return { error: dbErr.message };
+  }
   return {};
 }
 

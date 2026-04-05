@@ -758,6 +758,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email ?? safeEmail,
             handle: h,
+            displayName: h,
           });
           if (ins.error) {
             console.error("users table upsert:", ins.error);
@@ -1090,7 +1091,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         type: "ADD_COMMENT",
         postId,
         body: trimmed,
-        authorHandle: me?.handle,
+        authorHandle: me?.displayName ?? me?.handle,
       });
     },
     [state.currentUserId, state.users],

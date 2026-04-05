@@ -16,6 +16,7 @@ type UsersRow = {
   id: string;
   email: string;
   handle: string;
+  display_name: string | null;
   created_at: string;
 };
 
@@ -103,10 +104,13 @@ export default function ProfileByIdPage() {
     notFound();
   }
 
-  const displayHandle = profile.handle?.trim() || "User";
+  const displayHandle =
+    profile.display_name?.trim() ||
+    profile.handle?.trim() ||
+    "User";
   const user: User = {
     id: profile.id,
-    handle: displayHandle,
+    handle: profile.handle?.trim() || displayHandle,
     displayName: displayHandle,
     avatarUrl: null,
     bio: "",
