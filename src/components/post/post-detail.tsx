@@ -108,7 +108,7 @@ export function PostDetail({ postId }: Props) {
 
   const sortedComments = useMemo(() => comments, [comments]);
 
-  const handleText =
+  const linkHandle =
     post?.users?.handle ?? post?.authorHandle ?? author?.handle;
   const showRestaurantTag =
     post?.restaurants?.name != null && post.restaurants.name.length > 0;
@@ -216,13 +216,15 @@ export function PostDetail({ postId }: Props) {
       <div className="mt-6 space-y-5 px-0.5">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            {handleText && (
+            {linkHandle && (
               <p className="text-sm font-medium text-zinc-900">
                 <Link
-                  href={`/u/${handleText}`}
+                  href={`/u/${linkHandle}`}
                   className="hover:text-zinc-600"
                 >
-                  @{handleText}
+                  <span className="text-sm text-gray-500">
+                    @{post.users?.handle ?? "User"}
+                  </span>
                 </Link>
                 {!post.isPublic && (
                   <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
@@ -247,7 +249,7 @@ export function PostDetail({ postId }: Props) {
                 #{fallbackRestaurantName}
               </Link>
             )}
-            {author && !handleText && (
+            {author && !linkHandle && (
               <p className="text-xs text-zinc-400">
                 <Link
                   href={`/u/${author.handle}`}

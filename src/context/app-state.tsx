@@ -67,7 +67,6 @@ import {
 } from "@/lib/auth-persist";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { handleValidationMessage, normalizeHandle } from "@/lib/validate-handle";
-import { useRouter } from "next/navigation";
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 const MOCK_IDS = new Set(MOCK_USERS.map((u) => u.id));
@@ -553,7 +552,6 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [bootstrapReady, setBootstrapReady] = useState(false);
   const [currentUser, setCurrentUser] = useState<
@@ -759,14 +757,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const ins = await remoteEnsureUserRow(supabase, {
             id: authUser.id,
             email: authUser.email ?? safeEmail,
+            handle: h,
           });
           if (ins.error) {
             console.error("users table upsert:", ins.error);
+            return { ok: false, error: ins.error };
           }
         }
 
         console.log("signup success:", data);
-        router.push("/create");
         return { ok: true };
       } catch (error) {
         console.error("signup error:", error);
@@ -776,7 +775,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [router],
+    [],
   );
 
   const changePassword = useCallback(

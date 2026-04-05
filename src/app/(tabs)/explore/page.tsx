@@ -76,7 +76,6 @@ function ExploreContent() {
   const supabaseMode = isSupabaseConfigured();
 
   const [remoteItems, setRemoteItems] = useState<ExploreFeedItem[]>([]);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -97,24 +96,26 @@ function ExploreContent() {
     try {
       const from = pageRef.current * 20;
       const to = from + 19;
-      const { data, error } = await supabase
+      const { data: posts, error } = await supabase
         .from("posts")
         .select(POSTS_SELECT)
         .order("created_at", { ascending: false })
         .range(from, to);
+
+      console.log(posts);
 
       if (error) {
         console.error("[explore]", error.message);
         return;
       }
 
-      if (!data || data.length === 0) {
+      if (!posts || posts.length === 0) {
         hasMoreRef.current = false;
         setHasMore(false);
         return;
       }
 
-      const rows = data as Record<string, unknown>[];
+      const rows = posts as Record<string, unknown>[];
       const mapped = rows.map((r) => mapSupabasePostRow(r));
 
       setRemoteItems((prev) => {
@@ -152,7 +153,7 @@ function ExploreContent() {
       pageRef.current += 1;
       setPage(pageRef.current);
 
-      if (data.length < 20) {
+      if (posts.length < 20) {
         hasMoreRef.current = false;
         setHasMore(false);
       }
@@ -166,20 +167,6 @@ function ExploreContent() {
     if (!supabaseMode) return;
     void fetchPosts();
   }, [supabaseMode, fetchPosts]);
-
-  useEffect(() => {
-    if (!selectedPost) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setSelectedPost(null);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [selectedPost]);
 
   useEffect(() => {
     if (!supabaseMode) return;
@@ -239,6 +226,11 @@ function ExploreContent() {
     matchedRestaurant,
   ]);
 
+  const posts = useMemo(
+    () => filteredItems.map((item) => item.post),
+    [filteredItems],
+  );
+
   const trending = useMemo(
     () => computeTrending(filteredItems),
     [filteredItems],
@@ -275,67 +267,20 @@ function ExploreContent() {
       <ExploreTrending trending={trending} />
 
       <div className="mx-auto max-w-7xl px-3 pb-8 pt-1 sm:px-4">
-        {filteredItems.length === 0 ? (
+        {posts.length === 0 ? (
           <p className="py-24 text-center text-sm text-zinc-400">
             {emptyMessage ?? "No posts yet."}
           </p>
         ) : (
           <div className="columns-2 md:columns-3 lg:columns-4 gap-4">
-            {filteredItems.map(({ post }) => (
+            {posts.map((post) => (
               <div key={post.id} className="mb-4 break-inside-avoid">
-                <div
-                  className="w-full cursor-pointer rounded-2xl outline-none transition ring-zinc-900/5 focus-visible:ring-2"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedPost(post)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setSelectedPost(post);
-                    }
-                  }}
-                >
-                  <PostCard post={post} modalEmbed masonry />
-                </div>
+                <PostCard post={post} masonry />
               </div>
             ))}
           </div>
         )}
       </div>
-
-      {selectedPost && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="explore-post-modal-title"
-          onClick={() => setSelectedPost(null)}
-        >
-          <div
-            className="max-h-[min(90vh,800px)] w-full max-w-lg overflow-y-auto rounded-xl bg-white shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="border-b border-zinc-100 px-3 py-2">
-              <h2
-                id="explore-post-modal-title"
-                className="text-sm font-medium text-zinc-900"
-              >
-                Post
-              </h2>
-            </div>
-            <div className="p-2">
-              <PostCard post={selectedPost} />
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedPost(null)}
-              className="w-full border-t border-zinc-100 p-2 text-center text-sm font-medium text-zinc-700 transition hover:bg-zinc-50"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {supabaseMode && hasMore && (
         <div
@@ -350,7 +295,7 @@ function ExploreContent() {
         <p className="py-6 text-center text-sm text-zinc-400">Loading…</p>
       )}
 
-      {supabaseMode && !hasMore && filteredItems.length > 0 && (
+      {supabaseMode && !hasMore && posts.length > 0 && (
         <p className="py-4 text-center text-xs text-zinc-400">
           You&apos;re all caught up
         </p>

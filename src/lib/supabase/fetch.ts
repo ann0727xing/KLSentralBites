@@ -122,14 +122,16 @@ export async function fetchCommentsForPost(
 export function mapSupabasePostRow(row: Record<string, unknown>): Post {
   const id = String(row.id ?? "");
   const authorId = String(row.user_id ?? row.author_id ?? "");
-  const usersJoin = pickJoinedRow<Record<string, unknown>>(row.users);
+  const usersJoin = pickJoinedRow<{ id?: string; handle?: string }>(row.users);
   const authorHandle =
-    typeof usersJoin?.handle === "string"
+    typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
       ? String(usersJoin.handle)
       : undefined;
+  const uid =
+    usersJoin?.id != null ? String(usersJoin.id) : undefined;
   const users =
-    authorHandle != null && authorHandle.length > 0
-      ? { handle: authorHandle }
+    usersJoin != null && (uid != null || authorHandle != null)
+      ? { id: uid, handle: authorHandle }
       : undefined;
   const restaurantsJoin = pickJoinedRow<Record<string, unknown>>(
     row.restaurants,
@@ -245,7 +247,7 @@ export function extractBookmarksFromPostsRows(
   return saves;
 }
 
-/** Requires FKs: posts.user_id → users.id, posts.restaurant_id → restaurants.id */
+/** Requires FKs: posts_user_id_fkey → users.id, posts.restaurant_id → restaurants.id */
 export const POSTS_SELECT = `
   id,
   image_url,
@@ -253,7 +255,8 @@ export const POSTS_SELECT = `
   created_at,
   user_id,
   restaurant_id,
-  users (
+  users!posts_user_id_fkey (
+    id,
     handle
   ),
   restaurants (
@@ -283,7 +286,8 @@ export const PROFILE_POSTS_SELECT = `
   created_at,
   user_id,
   restaurant_id,
-  users (
+  users!posts_user_id_fkey (
+    id,
     handle
   ),
   restaurants (
@@ -372,6 +376,8 @@ export async function fetchRemoteSnapshot(
     .select(POSTS_SELECT)
     .in("user_id", targetIds)
     .order("created_at", { ascending: false });
+
+  console.log(postsRaw);
 
   if (postsError) {
     console.error(

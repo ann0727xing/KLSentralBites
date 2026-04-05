@@ -25,8 +25,9 @@ export interface Post {
   id: PostId;
   authorId: UserId;
   authorHandle?: string;
-  /** Joined from `users` when loaded from Supabase (`users(handle)`). */
+  /** Joined from `users` when loaded from Supabase (`users!posts_user_id_fkey`). */
   users?: {
+    id?: string;
     handle?: string;
   };
   /** From `bookmarks (user_id)` when loaded from Supabase (who saved this post). */

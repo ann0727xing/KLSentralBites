@@ -58,19 +58,19 @@ function MeContent() {
         return;
       }
       const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
+      const { data: posts, error } = await supabase
         .from("posts")
         .select(POSTS_SELECT)
         .eq("user_id", currentUserId)
         .order("created_at", { ascending: false });
-      console.log(data, error);
+      console.log(posts);
       if (cancelled) return;
-      if (error || !data) {
+      if (error || !posts) {
         setMePostsFromDb([]);
         return;
       }
       setMePostsFromDb(
-        data.map((r) => mapSupabasePostRow(r as Record<string, unknown>)),
+        posts.map((r) => mapSupabasePostRow(r as Record<string, unknown>)),
       );
     })();
     return () => {

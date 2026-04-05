@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizeHandle } from "@/lib/validate-handle";
 import type {
   Post,
   Restaurant,
@@ -25,19 +26,29 @@ export async function remoteInsertRestaurant(
   return { error: error?.message };
 }
 
-/** Insert into `public.users` if missing (`id`, `email`, handle = local part of email). */
+/**
+ * Upsert `public.users` after auth signup/login.
+ * When `handle` is set (signup), it is stored; otherwise handle defaults from email local-part.
+ */
 export async function remoteEnsureUserRow(
   supabase: SupabaseClient,
-  args: { id: string; email?: string | null },
+  args: { id: string; email?: string | null; handle?: string },
 ): Promise<{ error?: string }> {
   const email = String(args.email ?? "").trim();
-  if (!args.id || !email) return {};
+  if (!args.id || !email) return { error: "Missing user id or email" };
   const lower = email.toLowerCase();
-  const at = lower.indexOf("@");
-  const handle = at > 0 ? lower.slice(0, at) : lower;
+  const handle =
+    args.handle != null && String(args.handle).trim() !== ""
+      ? normalizeHandle(String(args.handle))
+      : (() => {
+          const at = lower.indexOf("@");
+          return at > 0 ? lower.slice(0, at) : lower;
+        })();
+  if (!handle) return { error: "Handle required" };
+
   const { error } = await supabase.from("users").upsert(
     { id: args.id, email: lower, handle },
-    { onConflict: "id", ignoreDuplicates: true },
+    { onConflict: "id" },
   );
   return { error: error?.message };
 }
