@@ -79,17 +79,20 @@ export async function fetchCommentsForPost(
   const pid = String(postId ?? "").trim();
   if (!pid) return { comments: [] };
 
+  const COMMENT_SELECT = `
+    id,
+    content,
+    created_at,
+    user_id,
+    users!comments_user_id_fkey (
+      id,
+      handle
+    )
+  `;
+
   let q = supabase
     .from("comments")
-    .select(
-      `
-      *,
-      users (
-        id,
-        handle
-      )
-    `,
-    )
+    .select(COMMENT_SELECT)
     .eq("post_id", pid);
 
   if (opts?.latestOnly && opts?.limit != null) {
@@ -99,10 +102,11 @@ export async function fetchCommentsForPost(
     if (opts?.limit != null) q = q.limit(opts.limit);
   }
 
-  const { data, error } = await q;
+  const { data: comments, error } = await q;
+  console.log(comments);
   if (error) return { comments: [], error: error.message };
 
-  let rows = (data ?? []) as Record<string, unknown>[];
+  let rows = (comments ?? []) as Record<string, unknown>[];
   if (opts?.latestOnly && opts?.limit != null) {
     rows = rows.slice().reverse();
   }

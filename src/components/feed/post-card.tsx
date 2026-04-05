@@ -139,7 +139,7 @@ export function PostCard({ post, savedView, modalEmbed, masonry }: Props) {
   return (
     <div className={`relative ${masonry ? "w-full min-w-0" : ""}`}>
       <article
-        className={`overflow-hidden rounded-2xl bg-zinc-50 ${masonry ? "w-full min-w-0" : ""}`}
+        className={`w-full rounded-2xl bg-zinc-50 ${masonry ? "min-w-0" : ""}`}
       >
         {modalEmbed ? (
           <div className="block">{mediaBlock}</div>
@@ -223,64 +223,59 @@ export function PostCard({ post, savedView, modalEmbed, masonry }: Props) {
           </div>
 
           <div
-            className="mt-3 border-t border-zinc-100/90 pt-2"
+            className="mt-3 w-full border-t border-zinc-100/90 pt-2"
             onClick={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
           >
             {displayComments.length > 0 && (
               <ul className="mb-2 space-y-1.5">
-                {displayComments.map((c) => {
-                  const showHandle =
-                    c.users?.handle ??
-                    c.authorHandle ??
-                    getUser(c.authorId)?.handle ??
-                    "User";
-                  return (
-                    <li
-                      key={c.id}
-                      className="flex flex-wrap items-baseline gap-x-1 text-[13px] leading-snug"
-                    >
-                      <span className="font-medium text-zinc-800">
-                        @{showHandle}
-                      </span>
-                      <span className="min-w-0 flex-1 text-zinc-600">{c.body}</span>
-                      {currentUserId === c.authorId && (
-                        <button
-                          type="button"
-                          className="shrink-0 text-[11px] text-zinc-400 hover:text-red-600"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            void deleteComment(c.id, post.id);
-                          }}
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
+                {displayComments.map((c) => (
+                  <li
+                    key={c.id}
+                    className="flex flex-wrap items-baseline gap-x-1 text-[13px] leading-snug"
+                  >
+                    <span className="font-semibold">
+                      @{c.users?.handle ?? "User"}
+                    </span>
+                    <span className="min-w-0 flex-1 text-zinc-600">{c.body}</span>
+                    {currentUserId === c.authorId && (
+                      <button
+                        type="button"
+                        className="shrink-0 text-[11px] text-zinc-400 hover:text-red-600"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void deleteComment(c.id, post.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </li>
+                ))}
               </ul>
             )}
             <form
-              className="flex gap-2"
+              className="w-full"
               onSubmit={(e) => void handleSubmitComment(e)}
             >
-              <input
-                type="text"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder="Add a comment…"
-                disabled={!currentUserId}
-                className="min-h-9 flex-1 rounded-xl border border-zinc-200/80 bg-white px-3 py-2 text-[13px] text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-200 disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!currentUserId || !draft.trim()}
-                className="shrink-0 rounded-xl bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Send
-              </button>
+              <div className="flex w-full items-center gap-2">
+                <input
+                  type="text"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="Add a comment..."
+                  disabled={!currentUserId}
+                  className="flex-1 rounded-full border border-zinc-200 px-4 py-2 outline-none disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!currentUserId || !draft.trim()}
+                  className="whitespace-nowrap rounded-full bg-black px-4 py-2 text-white disabled:opacity-40"
+                >
+                  Send
+                </button>
+              </div>
             </form>
           </div>
         </div>

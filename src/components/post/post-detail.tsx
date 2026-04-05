@@ -296,15 +296,13 @@ export function PostDetail({ postId }: Props) {
           {likes} {likes === 1 ? "like" : "likes"}
         </p>
 
-        <section ref={commentsRef} className="space-y-4 pt-8">
+        <section ref={commentsRef} className="w-full space-y-4 pt-8">
           <h2 className="text-xs font-medium uppercase tracking-wider text-zinc-400">
             Comments
           </h2>
-          <ul className="space-y-4">
+          <ul className="w-full space-y-4">
             {sortedComments.map((c) => {
               const u = getUser(c.authorId);
-              const handleLabel =
-                c.users?.handle ?? c.authorHandle ?? u?.handle ?? "User";
               return (
                 <li key={c.id} className="flex gap-3">
                   {u ? (
@@ -314,8 +312,8 @@ export function PostDetail({ postId }: Props) {
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800">
-                      <span className="font-medium text-zinc-900">
-                        @{handleLabel}
+                      <span className="font-semibold">
+                        @{c.users?.handle ?? "User"}
                       </span>{" "}
                       <span className="font-normal">{c.body}</span>
                     </p>
@@ -335,7 +333,7 @@ export function PostDetail({ postId }: Props) {
           </ul>
 
           <form
-            className="flex gap-2 pt-2"
+            className="w-full pt-2"
             onSubmit={(e) => {
               e.preventDefault();
               const t = draft.trim();
@@ -344,18 +342,21 @@ export function PostDetail({ postId }: Props) {
               setDraft("");
             }}
           >
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Add a comment"
-              className="min-h-11 flex-1 rounded-xl border-0 bg-zinc-50 px-4 text-sm text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
-            />
-            <button
-              type="submit"
-              className="rounded-xl bg-zinc-900 px-4 text-sm font-medium text-white transition hover:bg-zinc-800"
-            >
-              Send
-            </button>
+            <div className="flex w-full items-center gap-2">
+              <input
+                type="text"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Add a comment..."
+                className="flex-1 rounded-full border border-zinc-200 px-4 py-2 outline-none"
+              />
+              <button
+                type="submit"
+                className="whitespace-nowrap rounded-full bg-black px-4 py-2 text-white"
+              >
+                Send
+              </button>
+            </div>
           </form>
         </section>
       </div>
