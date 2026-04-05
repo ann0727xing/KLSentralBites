@@ -224,7 +224,6 @@ function syntheticUser(actorId: string, handle: string): User {
   return {
     id: actorId,
     handle,
-    displayName: handle,
     avatarUrl: null,
   };
 }
@@ -242,7 +241,7 @@ function RemoteNotificationListItem({
   const href =
     n.postId && (n.type === "like" || n.type === "comment")
       ? `/post/${n.postId}`
-      : `/profile/${n.actorId}`;
+      : `/profile/${encodeURIComponent(n.actorHandle)}`;
 
   const label =
     n.type === "like"
@@ -339,7 +338,7 @@ function MockNotificationListItem({
 
   const href =
     n.type === "follow"
-      ? `/profile/${n.actorId}`
+      ? `/profile/${encodeURIComponent(actor.handle)}`
       : n.postId
         ? `/post/${n.postId}`
         : "#";
@@ -360,7 +359,7 @@ function MockNotificationListItem({
         <UserAvatar user={actor} size={44} />
         <div className="min-w-0 flex-1">
           <p className="text-sm text-zinc-800">
-            <span className="font-medium">{actor.displayName}</span>
+            <span className="font-medium">@{actor.handle}</span>
             <span className="text-zinc-500"> {label}</span>
           </p>
           {n.type === "comment" && n.preview && (

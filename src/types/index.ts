@@ -5,8 +5,8 @@ export type CommentId = string;
 
 export interface User {
   id: UserId;
+  /** Unique username (shown as @handle). */
   handle: string;
-  displayName: string;
   /** Set when user uploads a photo; otherwise `null`. */
   avatarUrl: string | null;
   bio?: string;
@@ -28,7 +28,7 @@ export interface Post {
   /** Joined from `users` when loaded from Supabase (`users!posts_user_id_fkey`). */
   users?: {
     id?: string;
-    display_name?: string;
+    handle?: string;
   };
   /** From `bookmarks (user_id)` when loaded from Supabase (who saved this post). */
   bookmarks?: { user_id: string }[];
@@ -50,12 +50,12 @@ export interface Comment {
   authorId: UserId;
   body: string;
   createdAt: string;
-  /** From `users.display_name` when loaded from Supabase. */
+  /** From `users.handle` when loaded from Supabase. */
   authorHandle?: string;
   /** Nested `users` row from PostgREST when `comments.user_id → users.id` exists. */
   users?: {
     id?: string;
-    display_name?: string;
+    handle?: string;
   };
 }
 

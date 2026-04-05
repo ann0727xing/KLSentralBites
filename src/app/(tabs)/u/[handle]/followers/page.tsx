@@ -29,7 +29,7 @@ export default function UserFollowersPage() {
         </Link>
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400">
-            @{user.displayName ?? user.handle}
+            @{user.handle}
           </p>
           <h1 className="text-base font-medium leading-tight tracking-tight text-zinc-900">
             Followers

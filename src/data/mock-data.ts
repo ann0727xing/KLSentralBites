@@ -14,31 +14,26 @@ export const MOCK_USERS: User[] = [
   {
     id: "u1",
     handle: "you",
-    displayName: "Alex Chen",
     avatarUrl: null,
   },
   {
     id: "u2",
     handle: "minaal",
-    displayName: "Mina Alves",
     avatarUrl: null,
   },
   {
     id: "u3",
     handle: "jamesk",
-    displayName: "James Kim",
     avatarUrl: null,
   },
   {
     id: "u4",
     handle: "saran",
-    displayName: "Sara Ng",
     avatarUrl: null,
   },
   {
     id: "u5",
     handle: "omar",
-    displayName: "Omar Hadi",
     avatarUrl: null,
   },
 ];

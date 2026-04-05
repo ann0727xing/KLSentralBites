@@ -138,7 +138,6 @@ type Action =
   | { type: "TOGGLE_FOLLOW"; targetUserId: UserId }
   | {
       type: "UPDATE_USER";
-      displayName?: string;
       handle?: string;
       avatarUrl?: string | null;
       bio?: string;
@@ -423,10 +422,6 @@ function reducer(state: State, action: Action): State {
           if (u.id !== uid) return u;
           return {
             ...u,
-            displayName:
-              action.displayName !== undefined
-                ? action.displayName.trim() || u.displayName
-                : u.displayName,
             handle:
               action.handle !== undefined ? normalizedHandle : u.handle,
             avatarUrl:
@@ -523,11 +518,10 @@ type AppContextValue = {
   followersForUser: (userId: UserId) => User[];
   followingForUser: (userId: UserId) => User[];
   updateProfile: (args: {
-    displayName?: string;
-    handle?: string;
-    avatarUrl?: string | null;
-    bio?: string;
-  }) => Promise<void>;
+      handle?: string;
+      avatarUrl?: string | null;
+      bio?: string;
+    }) => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => void | Promise<void>;
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signup: (
@@ -666,7 +660,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(
     async (args: {
-      displayName?: string;
       handle?: string;
       avatarUrl?: string | null;
       bio?: string;
@@ -742,7 +735,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           options: {
             data: {
               handle: h,
-              display_name: h,
             },
           },
         });
@@ -758,7 +750,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email ?? safeEmail,
             handle: h,
-            displayName: h,
           });
           if (ins.error) {
             console.error("users table upsert:", ins.error);
@@ -1091,7 +1082,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         type: "ADD_COMMENT",
         postId,
         body: trimmed,
-        authorHandle: me?.displayName ?? me?.handle,
+        authorHandle: me?.handle,
       });
     },
     [state.currentUserId, state.users],
@@ -1235,7 +1226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .map((id) => state.users.find((u) => u.id === id))
         .filter((u): u is User => u != null);
       return [...out].sort((a, b) =>
-        a.displayName.localeCompare(b.displayName, undefined, {
+        a.handle.localeCompare(b.handle, undefined, {
           sensitivity: "base",
         }),
       );
@@ -1252,7 +1243,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .map((id) => state.users.find((u) => u.id === id))
         .filter((u): u is User => u != null);
       return [...out].sort((a, b) =>
-        a.displayName.localeCompare(b.displayName, undefined, {
+        a.handle.localeCompare(b.handle, undefined, {
           sensitivity: "base",
         }),
       );

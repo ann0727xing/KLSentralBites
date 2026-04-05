@@ -45,12 +45,11 @@ function mapCommentRow(
 ): Comment {
   const usersJoin = pickJoinedRow<{
     id?: string;
-    display_name?: string;
+    handle?: string;
   }>(row.users);
-  const displayName =
-    typeof usersJoin?.display_name === "string" &&
-    usersJoin.display_name.length > 0
-      ? usersJoin.display_name
+  const handleStr =
+    typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
+      ? usersJoin.handle
       : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
@@ -63,16 +62,16 @@ function mapCommentRow(
       typeof row.created_at === "string"
         ? row.created_at
         : new Date().toISOString(),
-    authorHandle: displayName,
+    authorHandle: handleStr,
     users:
-      usersJoin != null && (uid != null || displayName != null)
-        ? { id: uid, display_name: displayName }
+      usersJoin != null && (uid != null || handleStr != null)
+        ? { id: uid, handle: handleStr }
         : undefined,
   };
 }
 
 /**
- * Loads comments for a post with `users (display_name)`.
+ * Loads comments for a post with `users (handle)`.
  * Use `latestOnly: true` + `limit` for the N most recent (feed cards).
  */
 export async function fetchCommentsForPost(
@@ -90,7 +89,7 @@ export async function fetchCommentsForPost(
     user_id,
     users!comments_user_id_fkey (
       id,
-      display_name
+      handle
     )
   `;
 
@@ -127,18 +126,17 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
   const authorId = String(row.user_id ?? row.author_id ?? "");
   const usersJoin = pickJoinedRow<{
     id?: string;
-    display_name?: string;
+    handle?: string;
   }>(row.users);
   const authorHandle =
-    typeof usersJoin?.display_name === "string" &&
-    usersJoin.display_name.length > 0
-      ? String(usersJoin.display_name)
+    typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
+      ? String(usersJoin.handle)
       : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
   const users =
     usersJoin != null && (uid != null || authorHandle != null)
-      ? { id: uid, display_name: authorHandle }
+      ? { id: uid, handle: authorHandle }
       : undefined;
   const restaurantsJoin = pickJoinedRow<Record<string, unknown>>(
     row.restaurants,
@@ -267,7 +265,7 @@ export const POSTS_SELECT = `
   restaurant_id,
   users!posts_user_id_fkey (
     id,
-    display_name
+    handle
   ),
   restaurants (
     name
@@ -288,7 +286,7 @@ ${POSTS_SELECT}
   )
 ` as const;
 
-/** Posts for another user’s profile (`/profile/[id]`). Same embeds as feed posts. */
+/** Posts for another user’s profile (`/profile/[handle]`). Same embeds as feed posts. */
 export const PROFILE_POSTS_SELECT = `
   id,
   image_url,
@@ -298,7 +296,7 @@ export const PROFILE_POSTS_SELECT = `
   restaurant_id,
   users!posts_user_id_fkey (
     id,
-    display_name
+    handle
   ),
   restaurants (
     name
@@ -522,7 +520,7 @@ export const NOTIFICATION_DETAIL_SELECT = `
   actor_id,
   post_id,
   is_read,
-  actor:users!notifications_actor_id_fkey ( display_name ),
+  actor:users!notifications_actor_id_fkey ( handle ),
   post:posts!notifications_post_id_fkey ( id, image_url )
 ` as const;
 
@@ -530,7 +528,7 @@ export const NOTIFICATION_DETAIL_SELECT = `
 export function mapNotificationRowFromRaw(
   raw: Record<string, unknown>,
 ): NotificationRow {
-  const actorJoin = pickJoinedRow<{ display_name?: string }>(raw.actor);
+  const actorJoin = pickJoinedRow<{ handle?: string }>(raw.actor);
   const postJoin = pickJoinedRow<{ id?: string; image_url?: string }>(
     raw.post,
   );
@@ -546,9 +544,8 @@ export function mapNotificationRowFromRaw(
       ? postJoin.image_url
       : undefined;
   const actorLabel =
-    typeof actorJoin?.display_name === "string" &&
-    actorJoin.display_name.length > 0
-      ? actorJoin.display_name
+    typeof actorJoin?.handle === "string" && actorJoin.handle.length > 0
+      ? actorJoin.handle
       : "?";
   const t = raw.type;
   const type: NotificationRow["type"] =

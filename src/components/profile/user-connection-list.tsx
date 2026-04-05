@@ -23,16 +23,13 @@ export function UserConnectionList({ users }: Props) {
       {users.map((u) => (
         <li key={u.id} className="flex items-center gap-3 py-3.5 first:pt-0">
           <Link
-            href={`/u/${u.handle}`}
+            href={`/profile/${encodeURIComponent(u.handle)}`}
             className="flex min-w-0 flex-1 items-center gap-3"
           >
             <UserAvatar user={u} size={44} />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-zinc-900">
-                {u.displayName}
-              </p>
-              <p className="truncate text-xs text-zinc-400">
-                @{u.displayName ?? u.handle}
+                @{u.handle}
               </p>
             </div>
           </Link>

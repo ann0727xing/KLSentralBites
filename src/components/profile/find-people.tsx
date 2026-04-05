@@ -14,11 +14,7 @@ export function FindPeople() {
     if (t.length === 0) return [];
     return state.users
       .filter((u) => u.id !== currentUserId)
-      .filter(
-        (u) =>
-          u.displayName.toLowerCase().includes(t) ||
-          u.handle.toLowerCase().includes(t),
-      )
+      .filter((u) => u.handle.toLowerCase().includes(t))
       .slice(0, 24);
   }, [query, state.users, currentUserId]);
 
@@ -27,7 +23,7 @@ export function FindPeople() {
   return (
     <div>
       <label className="sr-only" htmlFor="find-people-search">
-        Search people by name or username
+        Search people by @handle
       </label>
       <input
         id="find-people-search"
@@ -35,7 +31,7 @@ export function FindPeople() {
         autoComplete="off"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Name or @username"
+        placeholder="@handle"
         className="w-full rounded-2xl border-0 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
       />
 
@@ -51,16 +47,13 @@ export function FindPeople() {
               className="flex items-center gap-3 py-2.5 first:pt-2 last:pb-2"
             >
               <Link
-                href={`/u/${u.handle}`}
+                href={`/profile/${encodeURIComponent(u.handle)}`}
                 className="flex min-w-0 flex-1 items-center gap-3"
               >
                 <UserAvatar user={u} size={40} />
                 <div className="min-w-0 text-left">
                   <p className="truncate text-sm font-medium text-zinc-900">
-                    {u.displayName}
-                  </p>
-                  <p className="truncate text-xs text-zinc-400">
-                    @{u.displayName ?? u.handle}
+                    @{u.handle}
                   </p>
                 </div>
               </Link>

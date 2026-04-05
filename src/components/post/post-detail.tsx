@@ -109,9 +109,8 @@ export function PostDetail({ postId }: Props) {
   const sortedComments = useMemo(() => comments, [comments]);
 
   const linkHandle =
-    post?.users?.display_name ??
+    post?.users?.handle ??
     post?.authorHandle ??
-    author?.displayName ??
     author?.handle;
   const showRestaurantTag =
     post?.restaurants?.name != null && post.restaurants.name.length > 0;
@@ -222,11 +221,15 @@ export function PostDetail({ postId }: Props) {
             {post.authorId && (
               <p className="text-sm font-medium text-zinc-900">
                 <Link
-                  href={`/user/${post.authorId}`}
+                  href={
+                    post.users?.handle ?? post.authorHandle
+                      ? `/profile/${encodeURIComponent(post.users?.handle ?? post.authorHandle ?? "")}`
+                      : `/user/${post.authorId}`
+                  }
                   className="hover:text-zinc-600"
                 >
                   <span className="text-sm text-gray-500">
-                    @{post.users?.display_name ?? post.authorHandle ?? "User"}
+                    @{post.users?.handle ?? post.authorHandle ?? "User"}
                   </span>
                 </Link>
                 {!post.isPublic && (
@@ -255,10 +258,10 @@ export function PostDetail({ postId }: Props) {
             {author && !linkHandle && (
               <p className="text-xs text-zinc-400">
                 <Link
-                  href={`/u/${author.handle}`}
+                  href={`/profile/${encodeURIComponent(author.handle)}`}
                   className="text-zinc-600 hover:text-zinc-800"
                 >
-                  {author.displayName}
+                  @{author.handle}
                 </Link>
                 {!post.isPublic && (
                   <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
@@ -318,7 +321,7 @@ export function PostDetail({ postId }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800">
                       <span className="font-semibold">
-                        @{c.users?.display_name ?? c.authorHandle ?? "User"}
+                        @{c.users?.handle ?? c.authorHandle ?? "User"}
                       </span>{" "}
                       <span className="font-normal">{c.body}</span>
                     </p>

@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAppState } from "@/context/app-state";
 
-type UserRow = { id: string; handle: string; display_name: string | null };
+type UserRow = { id: string; handle: string };
 
 export function SuggestedUsers() {
   const { currentUserId, isFollowing, toggleFollow } = useAppState();
@@ -22,7 +22,7 @@ export function SuggestedUsers() {
     let cancelled = false;
     void supabase
       .from("users")
-      .select("id, handle, display_name")
+      .select("id, handle")
       .neq("id", currentUserId)
       .limit(40)
       .then(({ data, error }) => {
@@ -61,10 +61,10 @@ export function SuggestedUsers() {
             className="flex items-center gap-3 py-2.5 first:pt-2 last:pb-2"
           >
             <Link
-              href={`/profile/${u.id}`}
+              href={`/profile/${encodeURIComponent(u.handle)}`}
               className="min-w-0 flex-1 truncate text-sm text-zinc-800"
             >
-              @{u.display_name?.trim() || u.handle}
+              @{u.handle}
             </Link>
             <button
               type="button"

@@ -36,7 +36,6 @@ export async function remoteEnsureUserRow(
     id: string;
     email?: string | null;
     handle?: string;
-    displayName?: string;
   },
 ): Promise<{ error?: string }> {
   const email = String(args.email ?? "").trim();
@@ -51,13 +50,8 @@ export async function remoteEnsureUserRow(
         })();
   if (!handle) return { error: "Handle required" };
 
-  const display_name =
-    args.displayName != null && String(args.displayName).trim() !== ""
-      ? String(args.displayName).trim()
-      : handle;
-
   const { error } = await supabase.from("users").upsert(
-    { id: args.id, email: lower, handle, display_name },
+    { id: args.id, email: lower, handle },
     { onConflict: "id" },
   );
   return { error: error?.message };
@@ -317,7 +311,6 @@ export async function remoteUpdateProfile(
   supabase: SupabaseClient,
   userId: UserId,
   args: {
-    displayName?: string;
     handle?: string;
     avatarUrl?: string | null;
     bio?: string;
@@ -326,7 +319,6 @@ export async function remoteUpdateProfile(
   /** `profiles` table not deployed — persist profile fields on auth user_metadata only. */
   const dataPatch: Record<string, unknown> = {};
   if (args.handle !== undefined) dataPatch.handle = args.handle;
-  if (args.displayName !== undefined) dataPatch.display_name = args.displayName;
   if (args.avatarUrl !== undefined) dataPatch.avatar_url = args.avatarUrl;
   if (args.bio !== undefined) dataPatch.bio = args.bio;
   if (Object.keys(dataPatch).length === 0) return {};
@@ -336,13 +328,10 @@ export async function remoteUpdateProfile(
   });
   if (authErr) return { error: authErr.message };
 
-  const row: Record<string, unknown> = {};
-  if (args.handle !== undefined) row.handle = args.handle;
-  if (args.displayName !== undefined) row.display_name = args.displayName;
-  if (Object.keys(row).length > 0) {
+  if (args.handle !== undefined) {
     const { error: dbErr } = await supabase
       .from("users")
-      .update(row)
+      .update({ handle: args.handle })
       .eq("id", userId);
     if (dbErr) return { error: dbErr.message };
   }

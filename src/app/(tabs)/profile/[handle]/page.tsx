@@ -9,6 +9,7 @@ import { postCoverImage } from "@/lib/post-images";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { mapSupabasePostRow, PROFILE_POSTS_SELECT } from "@/lib/supabase/fetch";
+import { normalizeHandle } from "@/lib/validate-handle";
 import { useAppState } from "@/context/app-state";
 import type { Post, User } from "@/types";
 
@@ -16,15 +17,17 @@ type UsersRow = {
   id: string;
   email: string;
   handle: string;
-  display_name: string | null;
   created_at: string;
 };
 
-export default function ProfileByIdPage() {
+export default function ProfileByHandlePage() {
   const params = useParams();
   const router = useRouter();
-  const id = typeof params.id === "string" ? params.id : "";
-  const { currentUserId, isFollowing, toggleFollow, dispatch } = useAppState();
+  const raw =
+    typeof params.handle === "string" ? decodeURIComponent(params.handle) : "";
+  const handleKey = raw.trim() ? normalizeHandle(raw) : "";
+  const { currentUserId, isFollowing, toggleFollow, dispatch, getUser } =
+    useAppState();
 
   const [profile, setProfile] = useState<UsersRow | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -32,7 +35,7 @@ export default function ProfileByIdPage() {
   const [missing, setMissing] = useState(false);
 
   const load = useCallback(async () => {
-    if (!id.trim()) {
+    if (!handleKey) {
       setMissing(true);
       setLoading(false);
       return;
@@ -50,9 +53,9 @@ export default function ProfileByIdPage() {
     setLoading(true);
     const { data: userRow, error: userErr } = await supabase
       .from("users")
-      .select("id, email, handle, display_name, created_at")
-      .eq("id", id)
-      .single();
+      .select("id, email, handle, created_at")
+      .eq("handle", handleKey)
+      .maybeSingle();
 
     if (userErr || !userRow) {
       setMissing(true);
@@ -67,7 +70,7 @@ export default function ProfileByIdPage() {
     const { data: postRows } = await supabase
       .from("posts")
       .select(PROFILE_POSTS_SELECT)
-      .eq("user_id", id)
+      .eq("user_id", userRow.id)
       .order("created_at", { ascending: false });
 
     const mapped = (postRows ?? []).map((r) =>
@@ -78,19 +81,19 @@ export default function ProfileByIdPage() {
       dispatch({ type: "MERGE_POSTS_REMOTE", posts: mapped });
     }
     setLoading(false);
-  }, [id, dispatch]);
+  }, [handleKey, dispatch]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useEffect(() => {
-    if (currentUserId && id && currentUserId === id) {
+    if (currentUserId && profile?.id && currentUserId === profile.id) {
       router.replace("/me");
     }
-  }, [currentUserId, id, router]);
+  }, [currentUserId, profile?.id, router]);
 
-  if (!id) {
+  if (!handleKey) {
     notFound();
   }
 
@@ -104,20 +107,17 @@ export default function ProfileByIdPage() {
     notFound();
   }
 
-  const displayHandle =
-    profile.display_name?.trim() ||
-    profile.handle?.trim() ||
-    "User";
+  const local = getUser(profile.id);
   const user: User = {
     id: profile.id,
-    handle: profile.handle?.trim() || displayHandle,
-    displayName: displayHandle,
-    avatarUrl: null,
-    bio: "",
+    handle: profile.handle,
+    avatarUrl: local?.avatarUrl ?? null,
+    bio: local?.bio ?? "",
   };
 
   const following = isFollowing(profile.id);
   const isSelf = currentUserId === profile.id;
+  const handleSafe = profile.handle;
 
   return (
     <div className="pb-8 pt-2 md:pt-0">
@@ -126,7 +126,7 @@ export default function ProfileByIdPage() {
           <UserAvatar user={user} size={80} />
         </div>
         <h1 className="mt-4 text-base font-medium leading-tight tracking-tight text-zinc-900">
-          @{displayHandle}
+          @{handleSafe}
         </h1>
         <p className="mt-1 text-sm text-zinc-500">
           {posts.length} {posts.length === 1 ? "post" : "posts"}
@@ -146,13 +146,13 @@ export default function ProfileByIdPage() {
         )}
         <p className="mt-4">
           <Link
-            href={`/u/${encodeURIComponent(displayHandle)}`}
+            href={`/u/${encodeURIComponent(handleSafe)}`}
             className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline"
           >
-            View by @handle URL
+            Open legacy /u/@handle URL
           </Link>
         </p>
-        <ProfileSubtleLinks basePath={`/u/${encodeURIComponent(displayHandle)}`} />
+        <ProfileSubtleLinks basePath={`/u/${encodeURIComponent(handleSafe)}`} />
       </div>
 
       <ProfilePostGrid posts={posts} />
@@ -160,7 +160,6 @@ export default function ProfileByIdPage() {
   );
 }
 
-/** Thumbnail grid (Instagram-style) without full PostCard stack. */
 function ProfilePostGrid({ posts }: { posts: Post[] }) {
   if (posts.length === 0) {
     return (

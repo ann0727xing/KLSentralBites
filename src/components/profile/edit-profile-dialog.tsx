@@ -22,7 +22,6 @@ type Props = {
 
 export function EditProfileDialog({ user, open, onClose }: Props) {
   const { updateProfile, currentUserId } = useAppState();
-  const [displayName, setDisplayName] = useState(user.displayName);
   const [handleInput, setHandleInput] = useState(user.handle);
   const [bio, setBio] = useState(user.bio ?? "");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user.avatarUrl);
@@ -30,7 +29,6 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setDisplayName(user.displayName);
     setHandleInput(user.handle);
     setBio(user.bio ?? "");
     setAvatarUrl(user.avatarUrl);
@@ -61,15 +59,12 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
     }
     const handleNormalized = normalizeHandle(handleInput);
 
-    console.log("handleInput before save:", handleInput);
-
     if (isSupabaseConfigured()) {
       try {
         const supabase = getSupabaseBrowserClient();
         const { data, error } = await supabase.auth.updateUser({
           data: {
             handle: handleNormalized,
-            display_name: displayName.trim() || user.displayName,
           },
         });
         if (error) {
@@ -88,7 +83,6 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
     }
 
     await updateProfile({
-      displayName: displayName.trim() || user.displayName,
       handle: handleNormalized,
       bio: bio.trim(),
       avatarUrl: avatarUrl ?? null,
@@ -100,7 +94,6 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
 
   const previewUser = {
     handle: handleInput.trim().replace(/^@/, "") || user.handle,
-    displayName: displayName.trim() || user.displayName,
     avatarUrl,
   };
 
@@ -125,7 +118,7 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
           >
             Edit profile
           </h2>
-          <p className="mt-0.5 text-xs text-zinc-400">Name, handle, bio, photo</p>
+          <p className="mt-0.5 text-xs text-zinc-400">Handle, bio, photo</p>
         </div>
         <div className="space-y-5 overflow-y-auto px-5 py-4">
           <div className="flex flex-col items-center gap-3">
@@ -154,17 +147,6 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
                 </button>
               ) : null}
             </div>
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-zinc-500" htmlFor="ep-name">
-              Name
-            </label>
-            <input
-              id="ep-name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-2xl border-0 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 placeholder:text-zinc-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200"
-            />
           </div>
           <div className="space-y-2">
             <label className="text-xs font-medium text-zinc-500" htmlFor="ep-handle">
