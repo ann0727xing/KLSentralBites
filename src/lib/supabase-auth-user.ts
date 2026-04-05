@@ -6,9 +6,11 @@ export function supabaseAuthToAppUser(u: SupabaseAuthUser): User {
   const meta = u.user_metadata as Record<string, unknown> | undefined;
   const handleFromMeta =
     typeof meta?.handle === "string" ? meta.handle.trim() : "";
+  const displayNameFromMeta =
+    typeof meta?.display_name === "string" ? meta.display_name.trim() : "";
   const handle = handleFromMeta || "user";
   const displayName =
-    (typeof meta?.display_name === "string" && meta.display_name) ||
+    (displayNameFromMeta.length > 0 ? displayNameFromMeta : null) ||
     (typeof meta?.full_name === "string" && meta.full_name) ||
     handle;
   return {

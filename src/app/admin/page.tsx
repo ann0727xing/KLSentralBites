@@ -54,7 +54,9 @@ function AdminContent() {
             className="flex flex-col gap-3 rounded-2xl border border-zinc-100 bg-white p-4 sm:flex-row sm:items-end"
           >
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-zinc-900">@{u.handle}</p>
+              <p className="text-sm font-medium text-zinc-900">
+                @{u.displayName ?? u.handle}
+              </p>
               <p className="text-xs text-zinc-400">{u.displayName}</p>
               <p className="mt-1 font-mono text-[10px] text-zinc-400">{u.id}</p>
             </div>

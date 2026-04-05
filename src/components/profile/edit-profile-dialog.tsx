@@ -69,6 +69,7 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
         const { data, error } = await supabase.auth.updateUser({
           data: {
             handle: handleNormalized,
+            display_name: displayName.trim() || user.displayName,
           },
         });
         if (error) {

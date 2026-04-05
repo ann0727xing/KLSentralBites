@@ -270,9 +270,9 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-zinc-500">Name</p>
           <p className="mt-1 text-sm text-zinc-900">{user?.displayName ?? "—"}</p>
-          <p className="mt-4 text-xs font-medium text-zinc-500">Handle</p>
+          <p className="mt-4 text-xs font-medium text-zinc-500">Username</p>
           <p className="mt-1 text-sm text-zinc-900">
-            @{user?.handle ?? "—"}
+            @{user?.displayName ?? user?.handle ?? "—"}
           </p>
         </div>
       </section>

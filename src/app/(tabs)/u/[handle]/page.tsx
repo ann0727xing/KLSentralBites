@@ -57,7 +57,9 @@ export default function UserProfilePage() {
         <h1 className="mt-4 text-base font-medium leading-tight tracking-tight text-zinc-900">
           {user.displayName}
         </h1>
-        <p className="text-sm text-zinc-400">@{user.handle}</p>
+        <p className="text-sm text-zinc-400">
+          @{user.displayName ?? user.handle}
+        </p>
         {user.bio?.trim() ? (
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-600">
             {user.bio}

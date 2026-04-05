@@ -6,7 +6,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAppState } from "@/context/app-state";
 
-type UserRow = { id: string; handle: string };
+type UserRow = { id: string; handle: string; display_name: string | null };
 
 export function SuggestedUsers() {
   const { currentUserId, isFollowing, toggleFollow } = useAppState();
@@ -64,7 +64,7 @@ export function SuggestedUsers() {
               href={`/profile/${u.id}`}
               className="min-w-0 flex-1 truncate text-sm text-zinc-800"
             >
-              @{u.handle}
+              @{u.display_name?.trim() || u.handle}
             </Link>
             <button
               type="button"

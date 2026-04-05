@@ -59,7 +59,9 @@ export function FindPeople() {
                   <p className="truncate text-sm font-medium text-zinc-900">
                     {u.displayName}
                   </p>
-                  <p className="truncate text-xs text-zinc-400">@{u.handle}</p>
+                  <p className="truncate text-xs text-zinc-400">
+                    @{u.displayName ?? u.handle}
+                  </p>
                 </div>
               </Link>
               <button

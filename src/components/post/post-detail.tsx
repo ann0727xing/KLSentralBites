@@ -226,7 +226,7 @@ export function PostDetail({ postId }: Props) {
                   className="hover:text-zinc-600"
                 >
                   <span className="text-sm text-gray-500">
-                    @{post.users?.handle ?? "User"}
+                    @{post.users?.display_name ?? "User"}
                   </span>
                 </Link>
                 {!post.isPublic && (
