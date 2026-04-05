@@ -22,7 +22,7 @@ export function SuggestedUsers() {
     let cancelled = false;
     void supabase
       .from("users")
-      .select("id, handle")
+      .select("id, handle, display_name")
       .neq("id", currentUserId)
       .limit(40)
       .then(({ data, error }) => {

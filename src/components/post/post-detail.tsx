@@ -226,7 +226,7 @@ export function PostDetail({ postId }: Props) {
                   className="hover:text-zinc-600"
                 >
                   <span className="text-sm text-gray-500">
-                    @{post.users?.display_name ?? "User"}
+                    @{post.users?.display_name ?? post.authorHandle ?? "User"}
                   </span>
                 </Link>
                 {!post.isPublic && (
@@ -318,7 +318,7 @@ export function PostDetail({ postId }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800">
                       <span className="font-semibold">
-                        @{c.users?.display_name ?? "User"}
+                        @{c.users?.display_name ?? c.authorHandle ?? "User"}
                       </span>{" "}
                       <span className="font-normal">{c.body}</span>
                     </p>

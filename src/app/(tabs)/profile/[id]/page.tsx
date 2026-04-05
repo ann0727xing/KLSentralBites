@@ -50,7 +50,7 @@ export default function ProfileByIdPage() {
     setLoading(true);
     const { data: userRow, error: userErr } = await supabase
       .from("users")
-      .select("id, email, handle, created_at")
+      .select("id, email, handle, display_name, created_at")
       .eq("id", id)
       .single();
 

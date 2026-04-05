@@ -100,6 +100,7 @@ export function EditProfileDialog({ user, open, onClose }: Props) {
 
   const previewUser = {
     handle: handleInput.trim().replace(/^@/, "") || user.handle,
+    displayName: displayName.trim() || user.displayName,
     avatarUrl,
   };
 

@@ -3,17 +3,19 @@ import type { User } from "@/types";
 import { needsUnoptimizedImage } from "@/lib/image-data";
 
 type Props = {
-  user: Pick<User, "handle" | "avatarUrl">;
+  user: Pick<User, "handle" | "displayName" | "avatarUrl">;
   size: number;
   className?: string;
 };
 
 /**
- * Profile image or neutral placeholder (initial from handle) when none set.
+ * Profile image or neutral placeholder (initial from display name) when none set.
  */
 export function UserAvatar({ user, size, className }: Props) {
   const src = user.avatarUrl;
-  const initial = (user.handle.slice(0, 1) || "?").toUpperCase();
+  const initial = (
+    (user.displayName || user.handle).slice(0, 1) || "?"
+  ).toUpperCase();
 
   if (src) {
     return (

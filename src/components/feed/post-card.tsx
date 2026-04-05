@@ -90,7 +90,7 @@ export function PostCard({ post, savedView, masonry }: Props) {
             className="text-sm text-gray-500 hover:text-gray-700"
             onClick={(e) => e.stopPropagation()}
           >
-            @{post.users?.display_name ?? "User"}
+            @{post.users?.display_name ?? post.authorHandle ?? "User"}
           </Link>
           {post.caption ? (
             <Link href={postHref} className="mt-1 block">

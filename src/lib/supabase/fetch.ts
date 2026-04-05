@@ -90,7 +90,7 @@ export async function fetchCommentsForPost(
     user_id,
     users!comments_user_id_fkey (
       id,
-      handle
+      display_name
     )
   `;
 
@@ -545,7 +545,7 @@ export function mapNotificationRowFromRaw(
     typeof postJoin?.image_url === "string" && postJoin.image_url.length > 0
       ? postJoin.image_url
       : undefined;
-  const handle =
+  const actorLabel =
     typeof actorJoin?.display_name === "string" &&
     actorJoin.display_name.length > 0
       ? actorJoin.display_name
@@ -561,7 +561,7 @@ export function mapNotificationRowFromRaw(
         ? raw.created_at
         : new Date().toISOString(),
     actorId: String(raw.actor_id ?? ""),
-    actorHandle: handle,
+    actorHandle: actorLabel,
     postId,
     isRead: Boolean(raw.is_read),
     postImageUrl,
