@@ -8,6 +8,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { remoteToggleSave } from "@/lib/supabase/mutations";
 import { useAppState } from "@/context/app-state";
+import { postAuthorHandle } from "@/lib/username-display";
 import type { Post } from "@/types";
 
 type Props = {
@@ -60,6 +61,7 @@ export function PostCard({ post, savedView, masonry }: Props) {
 
   const imageObjectClass = masonry ? "object-cover" : "object-contain";
   const postHref = `/post/${post.id}`;
+  const authorHandle = postAuthorHandle(post);
 
   return (
     <div className={`relative ${masonry ? "w-full min-w-0" : ""}`}>
@@ -85,17 +87,17 @@ export function PostCard({ post, savedView, masonry }: Props) {
         </Link>
 
         <div className="px-2 pb-2 pt-2">
-          <Link
-            href={
-              post.users?.handle ?? post.authorHandle
-                ? `/profile/${encodeURIComponent(post.users?.handle ?? post.authorHandle ?? "")}`
-                : `/user/${post.authorId}`
-            }
-            className="text-sm text-gray-500 hover:text-gray-700"
-            onClick={(e) => e.stopPropagation()}
-          >
-            @{post.users?.handle ?? post.authorHandle ?? "User"}
-          </Link>
+          {authorHandle ? (
+            <Link
+              href={`/profile/${encodeURIComponent(authorHandle)}`}
+              className="text-sm text-gray-500 hover:text-gray-700"
+              onClick={(e) => e.stopPropagation()}
+            >
+              @{authorHandle}
+            </Link>
+          ) : (
+            <span className="text-sm text-zinc-400">…</span>
+          )}
           {post.caption ? (
             <Link href={postHref} className="mt-1 block">
               <p className="line-clamp-2 text-[13px] font-normal leading-[1.4] text-zinc-600">

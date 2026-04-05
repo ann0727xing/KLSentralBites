@@ -41,6 +41,7 @@ export function SuggestedUsers() {
 
   const suggested = useMemo(() => {
     return candidates
+      .filter((u) => typeof u.handle === "string" && u.handle.trim().length > 0)
       .filter((u) => !isFollowing(u.id))
       .slice(0, 10);
   }, [candidates, isFollowing]);

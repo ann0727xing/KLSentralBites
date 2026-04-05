@@ -238,10 +238,14 @@ function RemoteNotificationListItem({
   highlight?: boolean;
 }) {
   const actor = syntheticUser(n.actorId, n.actorHandle);
+  const actorLabel = n.actorHandle.trim();
+  const profileHref = actorLabel
+    ? `/profile/${encodeURIComponent(actorLabel)}`
+    : `/user/${n.actorId}`;
   const href =
     n.postId && (n.type === "like" || n.type === "comment")
       ? `/post/${n.postId}`
-      : `/profile/${encodeURIComponent(n.actorHandle)}`;
+      : profileHref;
 
   const label =
     n.type === "like"
@@ -266,7 +270,9 @@ function RemoteNotificationListItem({
         <UserAvatar user={actor} size={44} />
         <div className="min-w-0 flex-1">
           <p className="text-sm text-zinc-800">
-            <span className="font-medium">@{n.actorHandle}</span>
+            <span className="font-medium">
+              {actorLabel ? `@${actorLabel}` : "…"}
+            </span>
             <span className="text-zinc-500"> {label}</span>
           </p>
           <p className="mt-0.5 text-xs text-zinc-400">

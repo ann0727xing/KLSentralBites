@@ -544,9 +544,9 @@ export function mapNotificationRowFromRaw(
       ? postJoin.image_url
       : undefined;
   const actorLabel =
-    typeof actorJoin?.handle === "string" && actorJoin.handle.length > 0
-      ? actorJoin.handle
-      : "?";
+    typeof actorJoin?.handle === "string" && actorJoin.handle.trim().length > 0
+      ? actorJoin.handle.trim()
+      : "";
   const t = raw.type;
   const type: NotificationRow["type"] =
     t === "like" || t === "follow" || t === "comment" ? t : "like";

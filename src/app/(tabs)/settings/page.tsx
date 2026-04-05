@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { PasswordField } from "@/components/auth/password-field";
 import { useAppState } from "@/context/app-state";
+import { useUserHandleFromDb } from "@/hooks/use-user-handle-from-db";
 import { supabaseAuthToAppUser } from "@/lib/supabase-auth-user";
 import { handleValidationMessage } from "@/lib/validate-handle";
 import type { User } from "@/types";
@@ -25,15 +26,23 @@ export default function SettingsPage() {
     supabaseMode,
   } = useAppState();
 
+  const { handle: dbHandle, loading: handleLoading } =
+    useUserHandleFromDb(currentUserId);
+
   const user = useMemo((): User | undefined => {
     if (!currentUserId) return undefined;
     const fromState = getUser(currentUserId);
     if (fromState) return fromState;
     if (supabaseMode && currentUser) {
-      return supabaseAuthToAppUser(currentUser);
+      if (handleLoading) return undefined;
+      if (dbHandle == null) return undefined;
+      return {
+        ...supabaseAuthToAppUser(currentUser),
+        handle: dbHandle,
+      } satisfies User;
     }
     return undefined;
-  }, [currentUserId, getUser, supabaseMode, currentUser]);
+  }, [currentUserId, getUser, supabaseMode, currentUser, dbHandle, handleLoading]);
 
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
@@ -269,7 +278,9 @@ export default function SettingsPage() {
         </h2>
         <div className="rounded-2xl border border-zinc-100 bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-zinc-500">Handle</p>
-          <p className="mt-1 text-sm text-zinc-900">@{user?.handle ?? "—"}</p>
+          <p className="mt-1 text-sm text-zinc-900">
+            {user?.handle ? `@${user.handle}` : "—"}
+          </p>
         </div>
       </section>
 

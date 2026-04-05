@@ -12,6 +12,7 @@ import type { Post } from "@/types";
 import { notFound, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppState } from "@/context/app-state";
+import { commentAuthorHandle, postAuthorHandle } from "@/lib/username-display";
 
 type Props = { postId: string };
 
@@ -100,7 +101,6 @@ export function PostDetail({ postId }: Props) {
     }
   }, [menuOpen]);
 
-  const author = post ? getUser(post.authorId) : undefined;
   const restaurant = post ? getRestaurant(post.restaurantId) : undefined;
   const comments = post ? commentsForPost(post.id) : [];
   const likes = post ? likeCount(post.id) : 0;
@@ -108,10 +108,7 @@ export function PostDetail({ postId }: Props) {
 
   const sortedComments = useMemo(() => comments, [comments]);
 
-  const linkHandle =
-    post?.users?.handle ??
-    post?.authorHandle ??
-    author?.handle;
+  const authorAt = post ? postAuthorHandle(post) : null;
   const showRestaurantTag =
     post?.restaurants?.name != null && post.restaurants.name.length > 0;
   const fallbackRestaurantName =
@@ -220,18 +217,16 @@ export function PostDetail({ postId }: Props) {
           <div className="min-w-0 space-y-2">
             {post.authorId && (
               <p className="text-sm font-medium text-zinc-900">
-                <Link
-                  href={
-                    post.users?.handle ?? post.authorHandle
-                      ? `/profile/${encodeURIComponent(post.users?.handle ?? post.authorHandle ?? "")}`
-                      : `/user/${post.authorId}`
-                  }
-                  className="hover:text-zinc-600"
-                >
-                  <span className="text-sm text-gray-500">
-                    @{post.users?.handle ?? post.authorHandle ?? "User"}
-                  </span>
-                </Link>
+                {authorAt ? (
+                  <Link
+                    href={`/profile/${encodeURIComponent(authorAt)}`}
+                    className="hover:text-zinc-600"
+                  >
+                    <span className="text-sm text-gray-500">@{authorAt}</span>
+                  </Link>
+                ) : (
+                  <span className="text-sm text-zinc-400">…</span>
+                )}
                 {!post.isPublic && (
                   <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
                     Private
@@ -254,21 +249,6 @@ export function PostDetail({ postId }: Props) {
               >
                 #{fallbackRestaurantName}
               </Link>
-            )}
-            {author && !linkHandle && (
-              <p className="text-xs text-zinc-400">
-                <Link
-                  href={`/profile/${encodeURIComponent(author.handle)}`}
-                  className="text-zinc-600 hover:text-zinc-800"
-                >
-                  @{author.handle}
-                </Link>
-                {!post.isPublic && (
-                  <span className="ml-2 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-                    Private
-                  </span>
-                )}
-              </p>
             )}
             {post.caption && (
               <p className="text-sm leading-relaxed text-zinc-700">{post.caption}</p>
@@ -311,6 +291,7 @@ export function PostDetail({ postId }: Props) {
           <ul className="w-full space-y-4">
             {sortedComments.map((c) => {
               const u = getUser(c.authorId);
+              const ch = commentAuthorHandle(c);
               return (
                 <li key={c.id} className="flex gap-3">
                   {u ? (
@@ -321,7 +302,7 @@ export function PostDetail({ postId }: Props) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-zinc-800">
                       <span className="font-semibold">
-                        @{c.users?.handle ?? c.authorHandle ?? "User"}
+                        {ch ? `@${ch}` : "…"}
                       </span>{" "}
                       <span className="font-normal">{c.body}</span>
                     </p>

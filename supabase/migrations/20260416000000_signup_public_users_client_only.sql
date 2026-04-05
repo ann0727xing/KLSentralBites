@@ -1,5 +1,6 @@
--- Client calls `public.users` insert after `auth.signUp()`.
--- The previous trigger on auth.users could fail (constraints, duplicates) and abort
--- the auth user creation with "Database error saving new user".
+-- Client inserts into `public.users` after `auth.signUp()`.
+-- Triggers on auth.users that insert into public.users can fail and abort signup with
+-- "Database error saving new user".
 
 drop trigger if exists on_auth_user_created_users on auth.users;
+drop trigger if exists on_auth_user_created on auth.users;

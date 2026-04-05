@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { normalizeHandle } from "@/lib/validate-handle";
 import type {
   Post,
   Restaurant,
@@ -24,38 +23,6 @@ export async function remoteInsertRestaurant(
     { onConflict: "id" },
   );
   return { error: error?.message };
-}
-
-/**
- * Insert into `public.users` after successful `auth.signUp` (id, email, handle only — no password).
- * If a row already exists (e.g. legacy trigger), update email/handle for that id.
- */
-export async function insertPublicUserAfterSignup(
-  supabase: SupabaseClient,
-  args: {
-    id: string;
-    email: string;
-    handle: string;
-  },
-): Promise<{ error?: string }> {
-  const email = String(args.email ?? "").trim().toLowerCase();
-  const handle = normalizeHandle(String(args.handle ?? ""));
-  if (!args.id || !email) return { error: "Missing user id or email" };
-  if (!handle) return { error: "Handle is required" };
-
-  const row = { id: args.id, email, handle };
-  const { error: insertErr } = await supabase.from("users").insert(row);
-  if (!insertErr) return {};
-
-  if (insertErr.code === "23505") {
-    const { error: updateErr } = await supabase
-      .from("users")
-      .update({ email, handle })
-      .eq("id", args.id);
-    return { error: updateErr?.message };
-  }
-
-  return { error: insertErr.message };
 }
 
 export async function remoteInsertPost(

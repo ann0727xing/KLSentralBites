@@ -43,9 +43,17 @@ export default async function UserProfilePage({ params }: Props) {
   );
 
   const handle =
-    typeof user.handle === "string" && user.handle.length > 0
-      ? user.handle
-      : "User";
+    typeof user.handle === "string" && user.handle.trim().length > 0
+      ? user.handle.trim()
+      : null;
+
+  if (!handle) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 pb-10 pt-8 text-center text-sm text-zinc-500">
+        No handle for this user.
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl pb-10 pt-2 md:pt-0">

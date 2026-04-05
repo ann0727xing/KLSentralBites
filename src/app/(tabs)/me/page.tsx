@@ -14,6 +14,7 @@ import { useAppState } from "@/context/app-state";
 import { mapSupabasePostRow, POSTS_SELECT } from "@/lib/supabase/fetch";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { useUserHandleFromDb } from "@/hooks/use-user-handle-from-db";
 import { supabaseAuthToAppUser } from "@/lib/supabase-auth-user";
 import type { Post, User } from "@/types";
 
@@ -22,6 +23,8 @@ function MeContent() {
   const tab = searchParams.get("tab") === "saved" ? "saved" : "posts";
   const { state, getUser, savedPosts, currentUserId } = useAppState();
   const supabaseOn = isSupabaseConfigured();
+  const { handle: dbHandle, loading: handleLoading } =
+    useUserHandleFromDb(currentUserId);
 
   const [currentUser, setCurrentUser] = useState<
     SupabaseAuthUser | null | undefined
@@ -52,7 +55,6 @@ function MeContent() {
     }
     let cancelled = false;
     void (async () => {
-      console.log("userId:", currentUserId);
       if (currentUserId == null || String(currentUserId).trim() === "") {
         if (!cancelled) setMePostsFromDb([]);
         return;
@@ -63,7 +65,6 @@ function MeContent() {
         .select(POSTS_SELECT)
         .eq("user_id", currentUserId)
         .order("created_at", { ascending: false });
-      console.log(posts);
       if (cancelled) return;
       if (error || !posts) {
         setMePostsFromDb([]);
@@ -85,8 +86,20 @@ function MeContent() {
     }
     if (currentUser === undefined) return undefined;
     if (currentUser === null) return null;
-    return supabaseAuthToAppUser(currentUser);
-  }, [supabaseOn, currentUser, currentUserId, getUser]);
+    if (handleLoading) return undefined;
+    if (dbHandle == null) return null;
+    return {
+      ...supabaseAuthToAppUser(currentUser),
+      handle: dbHandle,
+    } satisfies User;
+  }, [
+    supabaseOn,
+    currentUser,
+    currentUserId,
+    getUser,
+    dbHandle,
+    handleLoading,
+  ]);
 
   const myPosts = useMemo(() => {
     if (supabaseOn) return mePostsFromDb;
@@ -101,7 +114,14 @@ function MeContent() {
   }
 
   if (profileUser === null) {
-    return <div>Not logged in</div>;
+    if (!supabaseOn || currentUser === null) {
+      return <div>Not logged in</div>;
+    }
+    return (
+      <div className="py-20 text-center text-sm text-zinc-500">
+        Could not load profile (missing handle in users table).
+      </div>
+    );
   }
 
   return (

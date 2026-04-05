@@ -41,7 +41,6 @@ import {
   remoteToggleFollow,
   remoteToggleLike,
   remoteToggleSave,
-  insertPublicUserAfterSignup,
   remoteUpdatePost,
   remoteUpdateProfile,
 } from "@/lib/supabase/mutations";
@@ -66,7 +65,7 @@ import {
   type PersistedAuth,
 } from "@/lib/auth-persist";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { handleValidationMessage, normalizeHandle } from "@/lib/validate-handle";
+import { normalizeHandle } from "@/lib/validate-handle";
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 
 const MOCK_IDS = new Set(MOCK_USERS.map((u) => u.id));
@@ -716,26 +715,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const safeEmail = String(email ?? "").trim();
         const safePassword = String(password ?? "");
-        const supabase = getSupabaseBrowserClient();
+        const username = normalizeHandle(handle);
 
+        const supabase = getSupabaseBrowserClient();
         if (!supabase) {
-          console.error("signup error:", "Supabase client is undefined");
           return { ok: false, error: "Supabase client is undefined" };
         }
-
-        console.log("supabase:", supabase);
-        const h = normalizeHandle(handle);
-        const hv = handleValidationMessage(handle);
-        if (hv) {
-          return { ok: false, error: hv };
+        if (!username) {
+          return { ok: false, error: "Handle is required" };
         }
+
         const { data, error } = await supabase.auth.signUp({
           email: safeEmail,
           password: safePassword,
         });
 
         if (error) {
-          console.error("signup error:", error);
           return { ok: false, error: error.message };
         }
 
@@ -743,32 +738,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: "User creation failed" };
         }
 
-        const ins = await insertPublicUserAfterSignup(supabase, {
+        const { error: insertError } = await supabase.from("users").insert({
           id: data.user.id,
-          email: data.user.email ?? safeEmail,
-          handle: h,
+          email: safeEmail.toLowerCase(),
+          handle: username,
         });
-        if (ins.error) {
-          console.error("public.users insert:", ins.error);
-          return {
-            ok: false,
-            error: `Account was created but profile setup failed: ${ins.error}`,
-          };
-        }
 
-        const { error: metaErr } = await supabase.auth.updateUser({
-          data: { handle: h },
-        });
-        if (metaErr) {
-          console.warn(
-            "signup: auth metadata handle not synced:",
-            metaErr.message,
-          );
+        if (insertError) {
+          return { ok: false, error: insertError.message };
         }
 
         return { ok: true };
       } catch (error) {
-        console.error("signup error:", error);
         return {
           ok: false,
           error: error instanceof Error ? error.message : "Signup failed",
