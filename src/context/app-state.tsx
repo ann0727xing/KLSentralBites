@@ -41,7 +41,7 @@ import {
   remoteToggleFollow,
   remoteToggleLike,
   remoteToggleSave,
-  remoteEnsureUserRow,
+  insertPublicUserAfterSignup,
   remoteUpdatePost,
   remoteUpdateProfile,
 } from "@/lib/supabase/mutations";
@@ -732,11 +732,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const { data, error } = await supabase.auth.signUp({
           email: safeEmail,
           password: safePassword,
-          options: {
-            data: {
-              handle: h,
-            },
-          },
         });
 
         if (error) {
@@ -744,20 +739,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: error.message };
         }
 
-        const authUser = data.user;
-        if (authUser) {
-          const ins = await remoteEnsureUserRow(supabase, {
-            id: authUser.id,
-            email: authUser.email ?? safeEmail,
-            handle: h,
-          });
-          if (ins.error) {
-            console.error("users table upsert:", ins.error);
-            return { ok: false, error: ins.error };
-          }
+        if (!data.user) {
+          return { ok: false, error: "User creation failed" };
         }
 
-        console.log("signup success:", data);
+        const ins = await insertPublicUserAfterSignup(supabase, {
+          id: data.user.id,
+          email: data.user.email ?? safeEmail,
+          handle: h,
+        });
+        if (ins.error) {
+          console.error("public.users insert:", ins.error);
+          return {
+            ok: false,
+            error: `Account was created but profile setup failed: ${ins.error}`,
+          };
+        }
+
+        const { error: metaErr } = await supabase.auth.updateUser({
+          data: { handle: h },
+        });
+        if (metaErr) {
+          console.warn(
+            "signup: auth metadata handle not synced:",
+            metaErr.message,
+          );
+        }
+
         return { ok: true };
       } catch (error) {
         console.error("signup error:", error);
