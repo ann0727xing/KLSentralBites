@@ -11,7 +11,11 @@ import { SuggestedUsers } from "@/components/profile/suggested-users";
 import { ProfileSubtleLinks } from "@/components/profile/profile-subtle-links";
 import { UserAvatar } from "@/components/profile/user-avatar";
 import { useAppState } from "@/context/app-state";
-import { mapSupabasePostRow, POSTS_SELECT } from "@/lib/supabase/fetch";
+import {
+  enrichPostsWithUserHandles,
+  mapSupabasePostRow,
+  POSTS_SELECT,
+} from "@/lib/supabase/fetch";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useUserHandleFromDb } from "@/hooks/use-user-handle-from-db";
@@ -70,9 +74,11 @@ function MeContent() {
         setMePostsFromDb([]);
         return;
       }
-      setMePostsFromDb(
-        posts.map((r) => mapSupabasePostRow(r as Record<string, unknown>)),
+      let mapped = posts.map((r) =>
+        mapSupabasePostRow(r as Record<string, unknown>),
       );
+      mapped = await enrichPostsWithUserHandles(supabase, mapped);
+      setMePostsFromDb(mapped);
     })();
     return () => {
       cancelled = true;

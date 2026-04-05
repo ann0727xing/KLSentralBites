@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { useAppState } from "@/context/app-state";
+import { isDisplayableHandle } from "@/lib/username-display";
 
 type UserRow = { id: string; handle: string };
 
@@ -41,7 +42,11 @@ export function SuggestedUsers() {
 
   const suggested = useMemo(() => {
     return candidates
-      .filter((u) => typeof u.handle === "string" && u.handle.trim().length > 0)
+      .filter(
+        (u) =>
+          typeof u.handle === "string" &&
+          isDisplayableHandle(u.handle.trim()),
+      )
       .filter((u) => !isFollowing(u.id))
       .slice(0, 10);
   }, [candidates, isFollowing]);

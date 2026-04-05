@@ -8,7 +8,11 @@ import { UserAvatar } from "@/components/profile/user-avatar";
 import { postCoverImage } from "@/lib/post-images";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { mapSupabasePostRow, PROFILE_POSTS_SELECT } from "@/lib/supabase/fetch";
+import {
+  enrichPostsWithUserHandles,
+  mapSupabasePostRow,
+  PROFILE_POSTS_SELECT,
+} from "@/lib/supabase/fetch";
 import { normalizeHandle } from "@/lib/validate-handle";
 import { useAppState } from "@/context/app-state";
 import type { Post, User } from "@/types";
@@ -73,9 +77,10 @@ export default function ProfileByHandlePage() {
       .eq("user_id", userRow.id)
       .order("created_at", { ascending: false });
 
-    const mapped = (postRows ?? []).map((r) =>
+    let mapped = (postRows ?? []).map((r) =>
       mapSupabasePostRow(r as Record<string, unknown>),
     );
+    mapped = await enrichPostsWithUserHandles(supabase, mapped);
     setPosts(mapped);
     if (mapped.length > 0) {
       dispatch({ type: "MERGE_POSTS_REMOTE", posts: mapped });

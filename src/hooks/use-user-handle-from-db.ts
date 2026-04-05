@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isDisplayableHandle } from "@/lib/username-display";
 
 /**
  * Loads `users.handle` for the given auth user id (not from user_metadata).
@@ -49,7 +50,11 @@ export function useUserHandleFromDb(userId: string | null | undefined): {
         }
         const h =
           typeof data?.handle === "string" ? data.handle.trim() : "";
-        setHandle(h.length > 0 ? h : null);
+        if (h.length === 0) {
+          setHandle(null);
+        } else {
+          setHandle(isDisplayableHandle(h) ? h : null);
+        }
         setLoading(false);
       });
 

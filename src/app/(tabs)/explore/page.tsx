@@ -17,6 +17,7 @@ import { findRestaurantByTagParam } from "@/lib/explore-hashtags";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
+  enrichPostsWithUserHandles,
   extractBookmarksFromPostsRows,
   extractLikesFromPostsRows,
   mapSupabasePostRow,
@@ -102,8 +103,6 @@ function ExploreContent() {
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      console.log(posts);
-
       if (error) {
         console.error("[explore]", error.message);
         return;
@@ -116,7 +115,8 @@ function ExploreContent() {
       }
 
       const rows = posts as Record<string, unknown>[];
-      const mapped = rows.map((r) => mapSupabasePostRow(r));
+      let mapped = rows.map((r) => mapSupabasePostRow(r));
+      mapped = await enrichPostsWithUserHandles(supabase, mapped);
 
       setRemoteItems((prev) => {
         const seen = new Set(prev.map((x) => x.post.id));

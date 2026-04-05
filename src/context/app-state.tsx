@@ -724,28 +724,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (!username) {
           return { ok: false, error: "Handle is required" };
         }
-
-        const { data, error } = await supabase.auth.signUp({
-          email: safeEmail,
-          password: safePassword,
-        });
-
-        if (error) {
-          return { ok: false, error: error.message };
+        if (!/^[a-z0-9]{3,15}$/.test(username)) {
+          return { ok: false, error: "Invalid handle format." };
         }
 
-        if (!data.user) {
-          return { ok: false, error: "User creation failed" };
+        const { data: authData, error: authError } =
+          await supabase.auth.signUp({
+            email: safeEmail,
+            password: safePassword,
+          });
+
+        if (authError) {
+          throw new Error(authError.message);
         }
 
-        const { error: insertError } = await supabase.from("users").insert({
-          id: data.user.id,
-          email: safeEmail.toLowerCase(),
+        const user = authData.user;
+        if (!user) {
+          throw new Error("User not returned");
+        }
+
+        const emailForRow =
+          typeof user.email === "string" && user.email.length > 0
+            ? user.email.trim().toLowerCase()
+            : safeEmail.toLowerCase();
+
+        const { error: dbError } = await supabase.from("users").insert({
+          id: user.id,
+          email: emailForRow,
           handle: username,
         });
 
-        if (insertError) {
-          return { ok: false, error: insertError.message };
+        if (dbError) {
+          console.error("DB ERROR:", dbError);
+          throw new Error(dbError.message);
         }
 
         return { ok: true };

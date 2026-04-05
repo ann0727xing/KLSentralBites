@@ -9,6 +9,10 @@ import type {
   Save,
   User,
 } from "@/types";
+import {
+  isDisplayableHandle,
+  postAuthorHandle,
+} from "@/lib/username-display";
 
 export type RemoteSnapshot = {
   users: User[];
@@ -39,24 +43,40 @@ function pickJoinedRow<T extends Record<string, unknown>>(
   return undefined;
 }
 
+function pickJoinedUsersForComment(
+  row: Record<string, unknown>,
+): { id?: string; handle?: string } | undefined {
+  return (
+    pickJoinedRow<{ id?: string; handle?: string }>(row.users) ??
+    pickJoinedRow<{ id?: string; handle?: string }>(row.user)
+  );
+}
+
+function pickJoinedUsersForPost(
+  row: Record<string, unknown>,
+): { id?: string; handle?: string } | undefined {
+  return (
+    pickJoinedRow<{ id?: string; handle?: string }>(row.users) ??
+    pickJoinedRow<{ id?: string; handle?: string }>(row.user)
+  );
+}
+
 function mapCommentRow(
   row: Record<string, unknown>,
   postId: PostId,
 ): Comment {
-  const usersJoin = pickJoinedRow<{
-    id?: string;
-    handle?: string;
-  }>(row.users);
-  const handleStr =
+  const usersJoin = pickJoinedUsersForComment(row);
+  const rawHandle =
     typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
-      ? usersJoin.handle
-      : undefined;
+      ? usersJoin.handle.trim()
+      : "";
+  const handleStr = isDisplayableHandle(rawHandle) ? rawHandle : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
   return {
     id: String(row.id ?? ""),
     postId,
-    authorId: String(row.user_id ?? ""),
+    authorId: String(row.user_id ?? row.author_id ?? ""),
     body: typeof row.content === "string" ? row.content : "",
     createdAt:
       typeof row.created_at === "string"
@@ -87,7 +107,7 @@ export async function fetchCommentsForPost(
     content,
     created_at,
     user_id,
-    users!comments_user_id_fkey (
+    users!user_id (
       id,
       handle
     )
@@ -124,18 +144,16 @@ export async function fetchCommentsForPost(
 export function mapSupabasePostRow(row: Record<string, unknown>): Post {
   const id = String(row.id ?? "");
   const authorId = String(row.user_id ?? row.author_id ?? "");
-  const usersJoin = pickJoinedRow<{
-    id?: string;
-    handle?: string;
-  }>(row.users);
-  const authorHandle =
+  const usersJoin = pickJoinedUsersForPost(row);
+  const rawHandle =
     typeof usersJoin?.handle === "string" && usersJoin.handle.length > 0
-      ? String(usersJoin.handle)
-      : undefined;
+      ? String(usersJoin.handle).trim()
+      : "";
+  const authorHandle = isDisplayableHandle(rawHandle) ? rawHandle : undefined;
   const uid =
     usersJoin?.id != null ? String(usersJoin.id) : undefined;
   const users =
-    usersJoin != null && (uid != null || authorHandle != null)
+    usersJoin != null && uid != null && authorHandle != null
       ? { id: uid, handle: authorHandle }
       : undefined;
   const restaurantsJoin = pickJoinedRow<Record<string, unknown>>(
@@ -203,6 +221,47 @@ export function mapSupabasePostRow(row: Record<string, unknown>): Post {
 }
 
 /**
+ * When PostgREST embeds omit `users`, batch-load `public.users.handle` by author id.
+ */
+export async function enrichPostsWithUserHandles(
+  supabase: SupabaseClient,
+  posts: Post[],
+): Promise<Post[]> {
+  const missing = new Set<string>();
+  for (const p of posts) {
+    if (!p.authorId) continue;
+    if (postAuthorHandle(p) != null) continue;
+    missing.add(p.authorId);
+  }
+  if (missing.size === 0) return posts;
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, handle")
+    .in("id", [...missing]);
+
+  if (error || !data?.length) return posts;
+
+  const byId = new Map<string, string>();
+  for (const row of data) {
+    const id = String(row.id ?? "");
+    const h = typeof row.handle === "string" ? row.handle.trim() : "";
+    if (id && isDisplayableHandle(h)) byId.set(id, h);
+  }
+  if (byId.size === 0) return posts;
+
+  return posts.map((p) => {
+    const h = byId.get(p.authorId);
+    if (!h) return p;
+    return {
+      ...p,
+      authorHandle: h,
+      users: { id: p.authorId, handle: h },
+    };
+  });
+}
+
+/**
  * Flatten `likes (user_id)` embeds from post rows into `Like[]`.
  * Requires FK: likes.post_id → posts.id
  */
@@ -253,7 +312,7 @@ export function extractBookmarksFromPostsRows(
 }
 
 /**
- * Requires FKs: posts_user_id_fkey → users.id, posts.restaurant_id → restaurants.id
+ * Requires FK: posts.user_id → users.id, posts.restaurant_id → restaurants.id
  * Core author embed (never use `*` on posts): id, image_url, caption, user_id + users FK.
  */
 export const POSTS_SELECT = `
@@ -263,7 +322,7 @@ export const POSTS_SELECT = `
   created_at,
   user_id,
   restaurant_id,
-  users!posts_user_id_fkey (
+  users!user_id (
     id,
     handle
   ),
@@ -294,7 +353,7 @@ export const PROFILE_POSTS_SELECT = `
   created_at,
   user_id,
   restaurant_id,
-  users!posts_user_id_fkey (
+  users!user_id (
     id,
     handle
   ),
@@ -400,15 +459,29 @@ export async function fetchRemoteSnapshot(
   }
 
   const rawRows = (postsRaw ?? []) as Array<Record<string, unknown>>;
-  const posts = rawRows.map((r) => mapSupabasePostRow(r));
+  let posts = rawRows.map((r) => mapSupabasePostRow(r));
+  posts = await enrichPostsWithUserHandles(supabase, posts);
   const likes = extractLikesFromPostsRows(rawRows);
   const saves = extractBookmarksFromPostsRows(rawRows);
 
-  console.log("posts", posts);
+  const { data: userRows, error: usersError } = await supabase
+    .from("users")
+    .select("id, handle")
+    .in("id", targetIds);
+
+  const users: User[] = [];
+  if (!usersError && userRows) {
+    for (const r of userRows) {
+      const id = String(r.id ?? "");
+      const h = typeof r.handle === "string" ? r.handle.trim() : "";
+      if (!id || !isDisplayableHandle(h)) continue;
+      users.push({ id, handle: h, avatarUrl: null });
+    }
+  }
 
   return {
     snapshot: {
-      users: [],
+      users,
       restaurants: [],
       posts,
       comments: [],
@@ -458,7 +531,9 @@ export async function fetchPostById(
   if (error) return { post: null, likes: [], saves: [], error: error.message };
   if (!data) return { post: null, likes: [], saves: [] };
   const row = data as Record<string, unknown>;
-  const post = mapSupabasePostRow(row);
+  let post = mapSupabasePostRow(row);
+  const enriched = await enrichPostsWithUserHandles(supabase, [post]);
+  post = enriched[0] ?? post;
   const likes = extractLikesFromPostsRows([row]);
   const saves = extractBookmarksFromPostsRows([row]);
   return { post, likes, saves };
@@ -478,11 +553,11 @@ export async function fetchPostsByRestaurantId(
     .order("created_at", { ascending: false });
 
   if (error) return { posts: [], error: error.message };
-  return {
-    posts: (data ?? []).map((r) =>
-      mapSupabasePostRow(r as Record<string, unknown>),
-    ),
-  };
+  let posts = (data ?? []).map((r) =>
+    mapSupabasePostRow(r as Record<string, unknown>),
+  );
+  posts = await enrichPostsWithUserHandles(supabase, posts);
+  return { posts };
 }
 
 export async function fetchRestaurantNameById(
