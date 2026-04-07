@@ -241,87 +241,92 @@ export async function remoteDeleteComment(
   return { error: error?.message };
 }
 
-export async function remoteToggleFollow(
+/**
+ * Follow / unfollow using browser Supabase client.
+ * Uses `auth.getUser()` so the JWT user is authoritative for RLS (`follower_id = auth.uid()`).
+ */
+export async function handleFollow(
   supabase: SupabaseClient,
   followerIdFromState: UserId,
   followingId: UserId,
   currentlyFollowing: boolean,
 ): Promise<{ error?: string }> {
-  const { data: sessionData, error: sessionError } =
-    await supabase.auth.getSession();
-  const session = sessionData?.session ?? null;
-  const followerId = session?.user?.id ?? null;
+  console.log("CLICKED");
 
-  console.log("[follow] session", {
-    sessionError: sessionError?.message ?? null,
-    currentUserId: followerId,
-    followerIdFromState,
-    targetUserId: followingId,
-    currentlyFollowing,
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  const user = authData?.user ?? null;
+
+  console.log("user", user);
+  console.log("targetUserId", followingId);
+
+  console.log("[follow] getUser", {
+    authError: authError?.message ?? null,
+    hasUser: Boolean(user),
+    userId: user?.id ?? null,
   });
 
-  if (sessionError) {
-    console.error("[follow] getSession error", sessionError);
-    return { error: sessionError.message };
+  if (authError) {
+    console.error("[follow] getUser failed", authError);
+    return { error: authError.message };
   }
 
-  if (!followerId) {
-    console.error("[follow] no auth session — cannot insert into follows");
+  if (!user?.id) {
+    console.error("[follow] no user — cannot follow");
     return { error: "Not signed in" };
   }
 
+  const followerId = user.id;
+
   if (followerId !== followerIdFromState) {
-    console.warn("[follow] state user id !== session user id", {
+    console.warn("[follow] app state user id !== getUser id", {
       followerId,
       followerIdFromState,
     });
   }
 
   const target = String(followingId ?? "").trim();
-  if (!target || target === followerId) {
-    console.error("[follow] invalid target user id", { target, followerId });
+  if (!target) {
+    console.error("[follow] targetUserId missing");
+    return { error: "Invalid follow target" };
+  }
+  if (target === followerId) {
+    console.error("[follow] cannot follow self");
     return { error: "Invalid follow target" };
   }
 
   if (currentlyFollowing) {
-    const { error, data } = await supabase
+    console.log("before delete", { follower_id: followerId, following_id: target });
+    const { error: deleteError, data: deleteData } = await supabase
       .from("follows")
       .delete()
       .eq("follower_id", followerId)
       .eq("following_id", target)
       .select();
 
-    console.log("[follow] delete result", {
-      error: error?.message ?? null,
-      deleted: data?.length ?? 0,
-    });
+    console.log("delete error", deleteError);
+    console.log("[follow] unfollow rows", deleteData);
 
-    if (error) {
-      console.error("[follow] DB ERROR (delete)", error);
-      return { error: error.message };
+    if (deleteError) {
+      console.error("[follow] delete failed", deleteError);
+      return { error: deleteError.message };
     }
     return {};
   }
 
-  const row = {
-    follower_id: followerId,
-    following_id: target,
-  };
+  const row = { follower_id: followerId, following_id: target };
 
-  console.log("[follow] inserting row", row);
+  console.log("before insert", row);
 
   const { error: insertError, data: insertData } = await supabase
     .from("follows")
     .insert(row)
     .select();
 
-  console.log("[follow] insert result", {
-    data: insertData,
-    error: insertError,
-  });
+  console.log("insert error", insertError);
+  console.log("[follow] insert data", insertData);
 
   if (insertError) {
-    console.error("[follow] DB ERROR (insert)", insertError);
+    console.error("[follow] insert failed", insertError);
     return { error: insertError.message };
   }
 
@@ -338,6 +343,9 @@ export async function remoteToggleFollow(
 
   return {};
 }
+
+/** @deprecated use handleFollow */
+export const remoteToggleFollow = handleFollow;
 
 export async function remoteUpdateProfile(
   supabase: SupabaseClient,

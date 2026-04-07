@@ -38,7 +38,7 @@ import {
   remoteInsertPost,
   remoteInsertRestaurant,
   remoteSetNotificationsEnabled,
-  remoteToggleFollow,
+  handleFollow,
   remoteToggleLike,
   remoteToggleSave,
   remoteUpdatePost,
@@ -1220,16 +1220,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleFollow = useCallback(
     async (targetUserId: UserId) => {
+      console.log("user", { currentUserId: state.currentUserId });
+      console.log("targetUserId", targetUserId);
+
       const uid = state.currentUserId;
       if (!uid) {
-        console.warn("[follow] toggleFollow: no currentUserId — sign in first");
+        console.error("[follow] toggleFollow: no currentUserId — sign in first");
         return;
       }
-      const supabase = getSupabaseBrowserClient();
+      let supabase: ReturnType<typeof getSupabaseBrowserClient> | null = null;
+      try {
+        supabase = getSupabaseBrowserClient();
+      } catch (e) {
+        console.error("[follow] getSupabaseBrowserClient failed", e);
+        return;
+      }
       if (supabase) {
         const target = String(targetUserId ?? "").trim();
         if (!target || target === uid) {
-          console.warn("[follow] toggleFollow: invalid target", {
+          console.error("[follow] toggleFollow: invalid target", {
             targetUserId,
             uid,
           });
@@ -1238,8 +1247,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const following = state.follows.some(
           (f) => f.followerId === uid && f.followingId === target,
         );
-        console.log("[follow] toggleFollow", { uid, target, following });
-        const { error } = await remoteToggleFollow(
+        console.log("[follow] toggleFollow state", { uid, target, following });
+        const { error } = await handleFollow(
           supabase,
           uid,
           target,
@@ -1249,6 +1258,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.error("[follow] toggleFollow failed:", error);
           return;
         }
+        console.log("[follow] dispatch TOGGLE_FOLLOW ok", { target });
         dispatch({ type: "TOGGLE_FOLLOW", targetUserId: target });
         return;
       }
