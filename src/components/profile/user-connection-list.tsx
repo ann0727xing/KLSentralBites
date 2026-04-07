@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { UserAvatar } from "@/components/profile/user-avatar";
+import { FollowButton } from "@/components/profile/follow-button";
 import { useAppState } from "@/context/app-state";
 import type { User } from "@/types";
 
@@ -10,7 +11,7 @@ type Props = {
 };
 
 export function UserConnectionList({ users }: Props) {
-  const { currentUserId, isFollowing, toggleFollow } = useAppState();
+  const { currentUserId, isFollowing } = useAppState();
 
   if (users.length === 0) {
     return (
@@ -33,22 +34,17 @@ export function UserConnectionList({ users }: Props) {
               </p>
             </div>
           </Link>
-          {u.id !== currentUserId && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                toggleFollow(u.id);
-              }}
-              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-medium transition ${
+          {u.id !== currentUserId ? (
+            <FollowButton
+              targetUserId={u.id}
+              following={isFollowing(u.id)}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition ${
                 isFollowing(u.id)
                   ? "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                   : "bg-zinc-900 text-white hover:bg-zinc-800"
               }`}
-            >
-              {isFollowing(u.id) ? "Following" : "Follow"}
-            </button>
-          )}
+            />
+          ) : null}
         </li>
       ))}
     </ul>

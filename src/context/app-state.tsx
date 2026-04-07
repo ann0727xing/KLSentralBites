@@ -1222,7 +1222,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     async (targetUserId: UserId) => {
       const uid = state.currentUserId;
       if (!uid) {
-        console.warn("[follow] toggleFollow: no currentUserId");
+        console.warn("[follow] toggleFollow: no currentUserId — sign in first");
         return;
       }
       const supabase = getSupabaseBrowserClient();

@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { UserAvatar } from "@/components/profile/user-avatar";
 import { useMemo, useState } from "react";
+import { FollowButton } from "@/components/profile/follow-button";
 import { useAppState } from "@/context/app-state";
 
 export function FindPeople() {
   const [query, setQuery] = useState("");
-  const { state, currentUserId, isFollowing, toggleFollow } = useAppState();
+  const { state, currentUserId, isFollowing } = useAppState();
 
   const results = useMemo(() => {
     const t = query.trim().toLowerCase();
@@ -57,20 +58,15 @@ export function FindPeople() {
                   </p>
                 </div>
               </Link>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleFollow(u.id);
-                }}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+              <FollowButton
+                targetUserId={u.id}
+                following={isFollowing(u.id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
                   isFollowing(u.id)
                     ? "bg-white text-zinc-700 ring-1 ring-zinc-200 hover:bg-zinc-50"
                     : "bg-zinc-900 text-white hover:bg-zinc-800"
                 }`}
-              >
-                {isFollowing(u.id) ? "Following" : "Follow"}
-              </button>
+              />
             </li>
           ))}
         </ul>

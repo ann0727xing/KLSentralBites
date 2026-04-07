@@ -14,6 +14,7 @@ import {
   PROFILE_POSTS_SELECT,
 } from "@/lib/supabase/fetch";
 import { normalizeHandle } from "@/lib/validate-handle";
+import { FollowButton } from "@/components/profile/follow-button";
 import { useAppState } from "@/context/app-state";
 import type { Post, User } from "@/types";
 
@@ -30,8 +31,7 @@ export default function ProfileByHandlePage() {
   const raw =
     typeof params.handle === "string" ? decodeURIComponent(params.handle) : "";
   const handleKey = raw.trim() ? normalizeHandle(raw) : "";
-  const { currentUserId, isFollowing, toggleFollow, dispatch, getUser } =
-    useAppState();
+  const { currentUserId, isFollowing, dispatch, getUser } = useAppState();
 
   const [profile, setProfile] = useState<UsersRow | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -136,19 +136,17 @@ export default function ProfileByHandlePage() {
         <p className="mt-1 text-sm text-zinc-500">
           {posts.length} {posts.length === 1 ? "post" : "posts"}
         </p>
-        {!isSelf && currentUserId && (
-          <button
-            type="button"
-            onClick={() => toggleFollow(profile.id)}
+        {!isSelf ? (
+          <FollowButton
+            targetUserId={profile.id}
+            following={following}
             className={`mt-5 rounded-full px-8 py-2.5 text-sm font-medium transition ${
               following
                 ? "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
                 : "bg-zinc-900 text-white hover:bg-zinc-800"
             }`}
-          >
-            {following ? "Following" : "Follow"}
-          </button>
-        )}
+          />
+        ) : null}
         <p className="mt-4">
           <Link
             href={`/u/${encodeURIComponent(handleSafe)}`}

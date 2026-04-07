@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import { FeedGrid } from "@/components/feed/feed-grid";
 import { ProfileSubtleLinks } from "@/components/profile/profile-subtle-links";
 import { UserAvatar } from "@/components/profile/user-avatar";
+import { FollowButton } from "@/components/profile/follow-button";
 import { useAppState } from "@/context/app-state";
 
 export default function UserProfilePage() {
@@ -16,7 +17,6 @@ export default function UserProfilePage() {
     currentUserId,
     state,
     isFollowing,
-    toggleFollow,
   } = useAppState();
 
   const user = handle ? getUserByHandle(handle) : undefined;
@@ -62,17 +62,15 @@ export default function UserProfilePage() {
             {user.bio}
           </p>
         ) : null}
-        <button
-          type="button"
-          onClick={() => toggleFollow(user.id)}
+        <FollowButton
+          targetUserId={user.id}
+          following={following}
           className={`mt-5 rounded-full px-8 py-2.5 text-sm font-medium transition ${
             following
               ? "bg-zinc-100 text-zinc-800 hover:bg-zinc-200"
               : "bg-zinc-900 text-white hover:bg-zinc-800"
           }`}
-        >
-          {following ? "Following" : "Follow"}
-        </button>
+        />
         <ProfileSubtleLinks basePath={`/u/${user.handle}`} />
       </div>
 
