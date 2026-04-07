@@ -256,7 +256,7 @@ export async function handleFollow(
   const { data: authData, error: authError } = await supabase.auth.getUser();
   const user = authData?.user ?? null;
 
-  console.log("user", user);
+  console.log("user object", user);
   console.log("targetUserId", followingId);
 
   console.log("[follow] getUser", {
@@ -315,7 +315,7 @@ export async function handleFollow(
 
   const row = { follower_id: followerId, following_id: target };
 
-  console.log("before insert", row);
+  console.log("BEFORE INSERT", row);
 
   const { error: insertError, data: insertData } = await supabase
     .from("follows")
@@ -323,7 +323,7 @@ export async function handleFollow(
     .select();
 
   console.log("insert error", insertError);
-  console.log("[follow] insert data", insertData);
+  console.log("AFTER INSERT", insertData);
 
   if (insertError) {
     console.error("[follow] insert failed", insertError);

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useAppState } from "@/context/app-state";
 import type { UserId } from "@/types";
 
@@ -10,28 +11,39 @@ type Props = {
 };
 
 /**
- * Standalone Follow control: always clickable, logs CLICKED before calling toggleFollow.
- * Use next to <Link> rows — stopPropagation avoids the link stealing the tap.
+ * Follow control with optimistic UI: local `isFollowing` updates after a successful toggle.
+ * Debug: alerts + console logs (remove alerts when stable).
  */
 export function FollowButton({ targetUserId, following, className = "" }: Props) {
   const { currentUserId, toggleFollow } = useAppState();
+  const [isFollowing, setIsFollowing] = useState(following);
+
+  useEffect(() => {
+    setIsFollowing(following);
+  }, [following]);
 
   return (
     <button
       type="button"
-      aria-label={following ? "Unfollow" : "Follow"}
+      aria-label={isFollowing ? "Unfollow" : "Follow"}
       className={`relative z-20 shrink-0 cursor-pointer touch-manipulation select-none active:opacity-90 ${className}`}
-      onClick={(e) => {
+      onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
+        alert("clicked");
         console.log("CLICKED", {
           userId: currentUserId,
           targetUserId,
         });
-        void toggleFollow(targetUserId);
+        const wasFollowing = isFollowing;
+        const ok = await toggleFollow(targetUserId);
+        if (ok) {
+          setIsFollowing(!wasFollowing);
+          alert("done");
+        }
       }}
     >
-      {following ? "Following" : "Follow"}
+      {isFollowing ? "Following" : "Follow"}
     </button>
   );
 }

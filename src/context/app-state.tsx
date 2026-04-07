@@ -513,7 +513,7 @@ type AppContextValue = {
   deletePost: (postId: PostId) => void | Promise<void>;
   getUserByHandle: (handle: string) => User | undefined;
   isFollowing: (userId: UserId) => boolean;
-  toggleFollow: (targetUserId: UserId) => void | Promise<void>;
+  toggleFollow: (targetUserId: UserId) => Promise<boolean>;
   followersForUser: (userId: UserId) => User[];
   followingForUser: (userId: UserId) => User[];
   updateProfile: (args: {
@@ -1219,21 +1219,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleFollow = useCallback(
-    async (targetUserId: UserId) => {
+    async (targetUserId: UserId): Promise<boolean> => {
       console.log("user", { currentUserId: state.currentUserId });
       console.log("targetUserId", targetUserId);
 
       const uid = state.currentUserId;
       if (!uid) {
         console.error("[follow] toggleFollow: no currentUserId — sign in first");
-        return;
+        return false;
       }
       let supabase: ReturnType<typeof getSupabaseBrowserClient> | null = null;
       try {
         supabase = getSupabaseBrowserClient();
       } catch (e) {
         console.error("[follow] getSupabaseBrowserClient failed", e);
-        return;
+        return false;
       }
       if (supabase) {
         const target = String(targetUserId ?? "").trim();
@@ -1242,7 +1242,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             targetUserId,
             uid,
           });
-          return;
+          return false;
         }
         const following = state.follows.some(
           (f) => f.followerId === uid && f.followingId === target,
@@ -1256,13 +1256,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         );
         if (error) {
           console.error("[follow] toggleFollow failed:", error);
-          return;
+          return false;
         }
         console.log("[follow] dispatch TOGGLE_FOLLOW ok", { target });
         dispatch({ type: "TOGGLE_FOLLOW", targetUserId: target });
-        return;
+        return true;
       }
       dispatch({ type: "TOGGLE_FOLLOW", targetUserId });
+      return true;
     },
     [state.currentUserId, state.follows, dispatch],
   );
