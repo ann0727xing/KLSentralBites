@@ -513,7 +513,7 @@ type AppContextValue = {
   deletePost: (postId: PostId) => void | Promise<void>;
   getUserByHandle: (handle: string) => User | undefined;
   isFollowing: (userId: UserId) => boolean;
-  toggleFollow: (targetUserId: UserId) => void;
+  toggleFollow: (targetUserId: UserId) => void | Promise<void>;
   followersForUser: (userId: UserId) => User[];
   followingForUser: (userId: UserId) => User[];
   updateProfile: (args: {
@@ -1219,27 +1219,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleFollow = useCallback(
-    (targetUserId: UserId) => {
+    async (targetUserId: UserId) => {
       const uid = state.currentUserId;
-      if (!uid) return;
+      if (!uid) {
+        console.warn("[follow] toggleFollow: no currentUserId");
+        return;
+      }
       const supabase = getSupabaseBrowserClient();
       if (supabase) {
+        const target = String(targetUserId ?? "").trim();
+        if (!target || target === uid) {
+          console.warn("[follow] toggleFollow: invalid target", {
+            targetUserId,
+            uid,
+          });
+          return;
+        }
         const following = state.follows.some(
-          (f) =>
-            f.followerId === uid && f.followingId === targetUserId,
+          (f) => f.followerId === uid && f.followingId === target,
         );
-        void remoteToggleFollow(supabase, uid, targetUserId, following).then(
-          ({ error }) => {
-            if (!error) {
-              dispatch({ type: "TOGGLE_FOLLOW", targetUserId });
-            }
-          },
+        console.log("[follow] toggleFollow", { uid, target, following });
+        const { error } = await remoteToggleFollow(
+          supabase,
+          uid,
+          target,
+          following,
         );
+        if (error) {
+          console.error("[follow] toggleFollow failed:", error);
+          return;
+        }
+        dispatch({ type: "TOGGLE_FOLLOW", targetUserId: target });
         return;
       }
       dispatch({ type: "TOGGLE_FOLLOW", targetUserId });
     },
-    [state.currentUserId, state.follows],
+    [state.currentUserId, state.follows, dispatch],
   );
 
   const followersForUser = useCallback(

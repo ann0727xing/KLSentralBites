@@ -243,32 +243,96 @@ export async function remoteDeleteComment(
 
 export async function remoteToggleFollow(
   supabase: SupabaseClient,
-  followerId: UserId,
+  followerIdFromState: UserId,
   followingId: UserId,
   currentlyFollowing: boolean,
 ): Promise<{ error?: string }> {
+  const { data: sessionData, error: sessionError } =
+    await supabase.auth.getSession();
+  const session = sessionData?.session ?? null;
+  const followerId = session?.user?.id ?? null;
+
+  console.log("[follow] session", {
+    sessionError: sessionError?.message ?? null,
+    currentUserId: followerId,
+    followerIdFromState,
+    targetUserId: followingId,
+    currentlyFollowing,
+  });
+
+  if (sessionError) {
+    console.error("[follow] getSession error", sessionError);
+    return { error: sessionError.message };
+  }
+
+  if (!followerId) {
+    console.error("[follow] no auth session — cannot insert into follows");
+    return { error: "Not signed in" };
+  }
+
+  if (followerId !== followerIdFromState) {
+    console.warn("[follow] state user id !== session user id", {
+      followerId,
+      followerIdFromState,
+    });
+  }
+
+  const target = String(followingId ?? "").trim();
+  if (!target || target === followerId) {
+    console.error("[follow] invalid target user id", { target, followerId });
+    return { error: "Invalid follow target" };
+  }
+
   if (currentlyFollowing) {
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from("follows")
       .delete()
       .eq("follower_id", followerId)
-      .eq("following_id", followingId);
-    return { error: error?.message };
-  }
-  const { error } = await supabase.from("follows").insert({
-    follower_id: followerId,
-    following_id: followingId,
-  });
-  if (error) return { error: error.message };
+      .eq("following_id", target)
+      .select();
 
-  if (followingId !== followerId) {
+    console.log("[follow] delete result", {
+      error: error?.message ?? null,
+      deleted: data?.length ?? 0,
+    });
+
+    if (error) {
+      console.error("[follow] DB ERROR (delete)", error);
+      return { error: error.message };
+    }
+    return {};
+  }
+
+  const row = {
+    follower_id: followerId,
+    following_id: target,
+  };
+
+  console.log("[follow] inserting row", row);
+
+  const { error: insertError, data: insertData } = await supabase
+    .from("follows")
+    .insert(row)
+    .select();
+
+  console.log("[follow] insert result", {
+    data: insertData,
+    error: insertError,
+  });
+
+  if (insertError) {
+    console.error("[follow] DB ERROR (insert)", insertError);
+    return { error: insertError.message };
+  }
+
+  if (target !== followerId) {
     const { error: nErr } = await supabase.from("notifications").insert({
-      user_id: followingId,
+      user_id: target,
       actor_id: followerId,
       type: "follow",
     });
     if (nErr) {
-      console.warn("[remoteToggleFollow] notification insert:", nErr.message);
+      console.warn("[follow] notification insert:", nErr.message);
     }
   }
 
