@@ -315,7 +315,27 @@ export async function handleFollow(
 
   const row = { follower_id: followerId, following_id: target };
 
-  console.log("BEFORE INSERT", row);
+  console.log("CHECK EXISTING");
+  const { data: existing, error: existingError } = await supabase
+    .from("follows")
+    .select("*")
+    .eq("follower_id", followerId)
+    .eq("following_id", target)
+    .maybeSingle();
+
+  console.log("existing result", { existing, existingError });
+
+  if (existingError) {
+    console.error("[follow] existing check failed", existingError);
+    return { error: existingError.message };
+  }
+
+  if (existing) {
+    console.log("already following");
+    return {};
+  }
+
+  console.log("INSERTING", row);
 
   const { error: insertError, data: insertData } = await supabase
     .from("follows")
@@ -337,7 +357,7 @@ export async function handleFollow(
       type: "follow",
     });
     if (nErr) {
-      console.warn("[follow] notification insert:", nErr.message);
+      console.error("[follow] notification insert:", nErr.message);
     }
   }
 

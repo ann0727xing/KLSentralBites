@@ -128,7 +128,13 @@ export default function NotificationsPage() {
     let cancelled = false;
     setLoading(true);
     void (async () => {
-      await remoteMarkAllNotificationsRead(supabase, currentUserId);
+      const { error: markReadError } = await remoteMarkAllNotificationsRead(
+        supabase,
+        currentUserId,
+      );
+      if (markReadError) {
+        console.error("[notifications] mark read:", markReadError);
+      }
       if (cancelled) return;
       window.dispatchEvent(new Event("notifications-marked-read"));
       const { items, error } = await fetchNotificationsForUser(

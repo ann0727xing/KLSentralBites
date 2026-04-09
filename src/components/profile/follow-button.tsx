@@ -17,6 +17,7 @@ type Props = {
 export function FollowButton({ targetUserId, following, className = "" }: Props) {
   const { currentUserId, toggleFollow } = useAppState();
   const [isFollowing, setIsFollowing] = useState(following);
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     setIsFollowing(following);
@@ -25,21 +26,27 @@ export function FollowButton({ targetUserId, following, className = "" }: Props)
   return (
     <button
       type="button"
+      disabled={pending}
       aria-label={isFollowing ? "Unfollow" : "Follow"}
-      className={`relative z-20 shrink-0 cursor-pointer touch-manipulation select-none active:opacity-90 ${className}`}
+      aria-busy={pending}
+      className={`relative z-20 shrink-0 touch-manipulation select-none active:opacity-90 ${pending ? "cursor-wait opacity-70" : "cursor-pointer"} ${className}`}
       onClick={async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        alert("clicked");
+        if (pending) return;
+        setPending(true);
         console.log("CLICKED", {
           userId: currentUserId,
           targetUserId,
         });
-        const wasFollowing = isFollowing;
-        const ok = await toggleFollow(targetUserId);
-        if (ok) {
-          setIsFollowing(!wasFollowing);
-          alert("done");
+        try {
+          const wasFollowing = isFollowing;
+          const ok = await toggleFollow(targetUserId);
+          if (ok) {
+            setIsFollowing(!wasFollowing);
+          }
+        } finally {
+          setPending(false);
         }
       }}
     >

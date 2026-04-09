@@ -662,6 +662,42 @@ export async function fetchNotificationsForUser(
   return { items };
 }
 
+/**
+ * Fetch notifications for the signed-in user.
+ * - gets current auth user
+ * - filters notifications by `user_id`
+ * - orders newest first
+ */
+export async function fetchCurrentUserNotifications(
+  supabase: SupabaseClient,
+): Promise<{ items: NotificationRow[]; error?: string }> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError) {
+    console.error("[fetchCurrentUserNotifications] getUser:", authError.message);
+    return { items: [], error: authError.message };
+  }
+
+  const uid = String(authData?.user?.id ?? "").trim();
+  if (!uid) return { items: [] };
+
+  const { data, error } = await supabase
+    .from("notifications")
+    .select(NOTIFICATION_DETAIL_SELECT)
+    .eq("user_id", uid)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[fetchCurrentUserNotifications] select:", error.message);
+    return { items: [], error: error.message };
+  }
+
+  const items: NotificationRow[] = [];
+  for (const raw of data ?? []) {
+    items.push(mapNotificationRowFromRaw(raw as Record<string, unknown>));
+  }
+  return { items };
+}
+
 export async function fetchUnreadNotificationCount(
   supabase: SupabaseClient,
   userId: string,

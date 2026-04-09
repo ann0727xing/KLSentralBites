@@ -147,14 +147,6 @@ export default function ProfileByHandlePage() {
             }`}
           />
         ) : null}
-        <p className="mt-4">
-          <Link
-            href={`/u/${encodeURIComponent(handleSafe)}`}
-            className="text-xs text-zinc-400 underline-offset-2 hover:text-zinc-600 hover:underline"
-          >
-            Open legacy /u/@handle URL
-          </Link>
-        </p>
         <ProfileSubtleLinks basePath={`/u/${encodeURIComponent(handleSafe)}`} />
       </div>
 

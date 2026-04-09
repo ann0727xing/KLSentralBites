@@ -3,9 +3,9 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAppState } from "@/context/app-state";
-import { fetchUnreadNotificationCount } from "@/lib/supabase/fetch";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getUnreadNotificationCount } from "@/lib/getUnreadNotificationCount";
 
 /** Unread count pill for the notifications tab (Supabase only). */
 export function NotificationUnreadBadge() {
@@ -20,11 +20,7 @@ export function NotificationUnreadBadge() {
     }
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
-    const { count: n, error } = await fetchUnreadNotificationCount(
-      supabase,
-      currentUserId,
-    );
-    if (error) return;
+    const n = await getUnreadNotificationCount(supabase);
     setCount(n);
   }, [currentUserId]);
 
