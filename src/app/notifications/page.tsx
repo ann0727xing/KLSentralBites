@@ -8,6 +8,7 @@ import {
   getNotifications,
   type SimpleNotification,
 } from "@/lib/getNotifications";
+import { markNotificationsAsRead } from "@/lib/markNotificationsAsRead";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<SimpleNotification[]>([]);
@@ -34,6 +35,7 @@ export default function NotificationsPage() {
       const rows = await getNotifications(supabase);
       if (cancelled) return;
       setNotifications(rows);
+      await markNotificationsAsRead(supabase);
       setLoading(false);
     })();
 
