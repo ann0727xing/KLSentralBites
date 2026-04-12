@@ -1,6 +1,3 @@
-import { redirect } from "next/navigation";
-
-/** No Supabase — replaces former middleware `/` → `/following` redirect. */
-export default function Home() {
-  redirect("/following");
+export default function Page() {
+  return <div>SAFE PAGE</div>;
 }
