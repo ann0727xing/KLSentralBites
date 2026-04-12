@@ -1,7 +1,15 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** Single browser singleton — avoids multiple GoTrue clients and cookie churn. */
+/**
+ * Browser-only singleton Supabase client.
+ *
+ * - Do not import this from Server Components, Route Handlers that set cookies,
+ *   middleware, or `layout.tsx` — that pattern grows auth cookies and triggers
+ *   `REQUEST_HEADER_TOO_LARGE` on Vercel.
+ * - Call `auth.getUser()` / `getSession()` only inside client `useEffect` or
+ *   event handlers, never during render.
+ */
 let browserClient: SupabaseClient | null = null;
 
 export function getSupabaseBrowserClient(): SupabaseClient {
@@ -16,17 +24,13 @@ export function getSupabaseBrowserClient(): SupabaseClient {
     );
   }
   if (!browserClient) {
-    browserClient = createBrowserClient(
-      url,
-      anonKey,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-        },
+    browserClient = createBrowserClient(url, anonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
       },
-    );
+    });
   }
   return browserClient;
 }
