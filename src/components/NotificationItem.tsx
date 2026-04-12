@@ -11,18 +11,23 @@ export function NotificationItem({ notification }: Props) {
   const actor = notification.actor;
   const username = actor?.username ?? "someone";
   const avatarUrl = actor?.avatar_url ?? "";
-  const href =
-    notification.type === "like" && notification.post_id
-      ? `/post/${encodeURIComponent(notification.post_id)}`
-      : actor?.username
-        ? `/profile/${encodeURIComponent(actor.username)}`
-        : "#";
-  const text =
-    notification.type === "follow"
-      ? "followed you"
-      : notification.type === "like"
-        ? "liked your post"
-        : "sent you a notification";
+  const isFollow = notification.type === "follow";
+  const isLike = notification.type === "like";
+
+  const href = isLike && notification.post_id
+    ? `/post/${encodeURIComponent(notification.post_id)}`
+    : actor?.username
+      ? `/profile/${encodeURIComponent(actor.username)}`
+      : "#";
+
+  const text = isFollow
+    ? "followed you"
+    : isLike
+      ? "liked your post"
+      : "sent you a notification";
+
+  const showThumb = isLike && Boolean(notification.post_id);
+  const thumbSrc = notification.post_image_url ?? "";
 
   return (
     <li>
@@ -35,14 +40,29 @@ export function NotificationItem({ notification }: Props) {
           <img
             src={avatarUrl}
             alt={`${username} avatar`}
-            className="h-10 w-10 rounded-full object-cover"
+            className="h-10 w-10 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <div className="h-10 w-10 rounded-full bg-zinc-200" aria-hidden />
+          <div className="h-10 w-10 shrink-0 rounded-full bg-zinc-200" aria-hidden />
         )}
-        <p className="text-sm text-zinc-900">
+        <p className="min-w-0 flex-1 text-sm text-zinc-900">
           <span className="font-semibold">{username}</span> {text}
         </p>
+        {showThumb ? (
+          thumbSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumbSrc}
+              alt=""
+              className="h-12 w-12 shrink-0 rounded-xl object-cover"
+            />
+          ) : (
+            <div
+              className="h-12 w-12 shrink-0 rounded-xl bg-zinc-100"
+              aria-hidden
+            />
+          )
+        ) : null}
       </Link>
     </li>
   );

@@ -3,16 +3,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function getUnreadNotificationCount(
   supabase: SupabaseClient,
 ): Promise<number> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) {
     console.error(
-      "[getUnreadNotificationCount] getUser failed:",
-      authError.message,
+      "[getUnreadNotificationCount] getSession failed:",
+      sessionError.message,
     );
     return 0;
   }
 
-  const userId = String(authData?.user?.id ?? "").trim();
+  const userId = String(session?.user?.id ?? "").trim();
   if (!userId) return 0;
 
   const { count, error } = await supabase

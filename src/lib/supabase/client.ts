@@ -1,6 +1,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/** Single browser singleton — avoids multiple GoTrue clients and cookie churn. */
 let browserClient: SupabaseClient | null = null;
 
 export function getSupabaseBrowserClient(): SupabaseClient {

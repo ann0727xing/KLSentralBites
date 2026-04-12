@@ -11,19 +11,24 @@ export type SimpleNotification = {
   type: "follow" | "like" | string;
   created_at: string;
   post_id: string | null;
+  /** Post cover image for like notifications (from joined `posts`). */
+  post_image_url: string | null;
   actor: NotificationActor | null;
 };
 
 export async function getNotifications(
   supabase: SupabaseClient,
 ): Promise<SimpleNotification[]> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError) {
-    console.error("[getNotifications] getUser failed:", authError.message);
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) {
+    console.error("[getNotifications] getSession failed:", sessionError.message);
     return [];
   }
 
-  const userId = authData?.user?.id;
+  const userId = session?.user?.id;
   if (!userId) {
     console.error("[getNotifications] No logged-in user found");
     return [];
@@ -37,6 +42,7 @@ export async function getNotifications(
       type,
       created_at,
       post_id,
+      post:posts!notifications_post_id_fkey ( image_url ),
       actor:profiles (
         id,
         username,
@@ -57,6 +63,10 @@ export async function getNotifications(
     type: string;
     created_at: string;
     post_id?: string | null;
+    post?:
+      | { image_url?: string | null }
+      | Array<{ image_url?: string | null }>
+      | null;
     actor:
       | {
           id?: string | null;
@@ -82,11 +92,18 @@ export async function getNotifications(
           }
         : null;
 
+    const postRaw = Array.isArray(row.post) ? row.post[0] : row.post;
+    const postImageUrl =
+      typeof postRaw?.image_url === "string" && postRaw.image_url.length > 0
+        ? postRaw.image_url
+        : null;
+
     return {
       id: row.id,
       type: row.type,
       created_at: row.created_at,
       post_id: row.post_id ?? null,
+      post_image_url: postImageUrl,
       actor,
     };
   });

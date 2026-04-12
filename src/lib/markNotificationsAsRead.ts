@@ -3,16 +3,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export async function markNotificationsAsRead(
   supabase: SupabaseClient,
 ): Promise<boolean> {
-  const { data: authData, error: authError } = await supabase.auth.getUser();
-  if (authError) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  if (sessionError) {
     console.error(
-      "[markNotificationsAsRead] getUser failed:",
-      authError.message,
+      "[markNotificationsAsRead] getSession failed:",
+      sessionError.message,
     );
     return false;
   }
 
-  const userId = String(authData?.user?.id ?? "").trim();
+  const userId = String(session?.user?.id ?? "").trim();
   if (!userId) {
     console.error("[markNotificationsAsRead] No logged-in user found");
     return false;

@@ -291,9 +291,7 @@ function RemoteNotificationListItem({
             imageUrl={n.postImageUrl}
             getPost={getPost}
           />
-        ) : (
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-zinc-100" aria-hidden />
-        )}
+        ) : null}
       </Link>
     </li>
   );
@@ -394,9 +392,7 @@ function MockNotificationListItem({
               sizes="48px"
             />
           </div>
-        ) : (
-          <div className="h-12 w-12 shrink-0 rounded-xl bg-zinc-100" aria-hidden />
-        )}
+        ) : null}
       </Link>
     </li>
   );

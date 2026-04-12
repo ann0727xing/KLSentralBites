@@ -1,65 +1,18 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    if (pathname === "/") {
-      return NextResponse.redirect(new URL("/following", request.url));
-    }
-    return NextResponse.next();
+/**
+ * Edge middleware intentionally does NOT use Supabase (`createServerClient`, `getSession`, or `getUser`).
+ * That avoids refreshing/writing auth cookies on every navigation — a common cause of
+ * `REQUEST_HEADER_TOO_LARGE` and repeated calls to `/auth/v1/user`.
+ *
+ * Session protection for app routes is handled client-side by `AuthGuard` (see `(tabs)/layout.tsx`).
+ * Public routes: `/login`, `/signup`, etc.
+ */
+export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname === "/") {
+    return NextResponse.redirect(new URL("/following", request.url));
   }
-
-  let response = NextResponse.next({
-    request: { headers: request.headers },
-  });
-
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) =>
-          request.cookies.set(name, value),
-        );
-        response = NextResponse.next({
-          request: { headers: request.headers },
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          response.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const isLoggedIn = !!session;
-
-  if (!isLoggedIn && pathname !== "/login" && pathname !== "/signup") {
-    const redirect = NextResponse.redirect(new URL("/login", request.url));
-    response.cookies.getAll().forEach((c) => {
-      redirect.cookies.set(c.name, c.value);
-    });
-    return redirect;
-  }
-
-  if (isLoggedIn && pathname === "/") {
-    const redirect = NextResponse.redirect(new URL("/following", request.url));
-    response.cookies.getAll().forEach((c) => {
-      redirect.cookies.set(c.name, c.value);
-    });
-    return redirect;
-  }
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
